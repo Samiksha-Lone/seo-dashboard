@@ -1,0 +1,164 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  CLIENT
+}
+
+enum AuditStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum IssueSeverity {
+  CRITICAL
+  IMPORTANT
+  QUICK_WIN
+}
+
+enum RecommendationPriority {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         UserRole @default(CLIENT)
+
+  client        Client?
+  createdAudits Audit[] @relation("AuditCreatedBy")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Client {
+  id           String  @id @default(cuid())
+  businessName String
+  businessType String
+  city         String
+  state        String
+  phone        String?
+
+  userId String? @unique
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  websites Website[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Website {
+  id   String @id @default(cuid())
+  name String
+  url  String
+
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  audits Audit[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId])
+}
+
+model Audit {
+  id           String      @id @default(cuid())
+  auditVersion String      @default("1.0")
+  status       AuditStatus @default(QUEUED)
+
+  overallScore   Int?
+  scoreBreakdown Json?
+  result         Json?
+  signals        Json?
+
+  errorMessage String?
+  startedAt    DateTime?
+  completedAt  DateTime?
+
+  websiteId String
+  website   Website @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+
+  createdById String?
+  createdBy   User?   @relation("AuditCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  issues          AuditIssue[]
+  recommendations AuditRecommendation[]
+  report          Report?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([websiteId, createdAt])
+  @@index([status, createdAt])
+}
+
+model AuditIssue {
+  id                  String        @id @default(cuid())
+  severity            IssueSeverity
+  category            String
+  title               String
+  finding             String
+  fix                 String
+  estimatedImpact     String
+  effort              String
+  falsifiabilityCheck String
+
+  auditId String
+  audit   Audit  @relation(fields: [auditId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([auditId, severity])
+}
+
+model AuditRecommendation {
+  id                  String                 @id @default(cuid())
+  priority            RecommendationPriority
+  category            String
+  finding             String
+  fix                 String
+  estimatedImpact     String
+  effort              String
+  falsifiabilityCheck String
+
+  auditId String
+  audit   Audit  @relation(fields: [auditId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([auditId, priority])
+}
+
+model Report {
+  id          String   @id @default(cuid())
+  fileName    String
+  filePath    String
+  generatedAt DateTime @default(now())
+
+  auditId String @unique
+  audit   Audit  @relation(fields: [auditId], references: [id], onDelete: Cascade)
+}
