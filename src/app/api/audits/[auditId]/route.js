@@ -35,6 +35,9 @@ function executiveSummary(value) {
 }
 
 export async function GET(_request, { params }) {
+  const { authorizeApi } = require("../../../../services/auth");
+  const auth = await authorizeApi(_request, prisma, { roles: ["ADMIN"] });
+  if (auth.response) return auth.response;
   if (!isValidId(params.auditId)) {
     return NextResponse.json({ error: 'Invalid audit ID.' }, { status: 400 });
   }
@@ -91,6 +94,7 @@ export async function GET(_request, { params }) {
         },
         report: {
           select: {
+            id: true,
             fileName: true,
             generatedAt: true,
             notificationAttemptedAt: true,

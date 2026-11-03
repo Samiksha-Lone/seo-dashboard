@@ -1,8 +1,9 @@
 const cheerio = require('cheerio');
+const { safeFetch } = require('./safe-fetch');
 
 async function crawlWebsite(url) {
   try {
-    const response = await fetch(url);
+    const response = await safeFetch(url);
 
     if (!response.ok) {
       throw new Error(`Failed to fetch website: ${response.status}`);

@@ -1,8 +1,15 @@
 import Link from "next/link";
 import DashboardShell from "@/components/layout/DashboardShell";
 import AuditDetail from "@/components/audits/AuditDetail";
+import { requirePageRole } from "@/services/auth";
 
-export default function AuditDetailPage({ params }) {
+export const metadata = {
+  title: "Audit Details",
+  description: "Review SEO audit status, score, findings, and recommendations.",
+};
+
+export default async function AuditDetailPage({ params }) {
+  await requirePageRole(["ADMIN"]);
   return (
     <DashboardShell>
       <div className="space-y-6">

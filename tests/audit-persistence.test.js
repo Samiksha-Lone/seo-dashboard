@@ -24,7 +24,7 @@ const report = {
   important_issues: [],
   quick_wins: [],
   recommendations: [{
-    priority: 'HIGH',
+    priority: 'CRITICAL',
     category: 'technical',
     finding: 'A recommendation',
     fix: 'Apply recommendation',
@@ -125,7 +125,7 @@ test('existing audit persistence is atomic with a 20-second transaction timeout'
   assert.equal(state.updatedAudit.data.completedAt, null);
   assert.equal(state.updatedAudit.data.websiteId, 'website_1');
   assert.equal(state.updatedAudit.data.issues.create[0].severity, 'CRITICAL');
-  assert.equal(state.updatedAudit.data.recommendations.create[0].priority, 'HIGH');
+  assert.equal(state.updatedAudit.data.recommendations.create[0].priority, 'CRITICAL');
   assert.equal(saved.id, 'audit_existing');
 });
 

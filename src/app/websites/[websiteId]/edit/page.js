@@ -4,10 +4,17 @@ import DashboardShell from "@/components/layout/DashboardShell";
 import WebsiteForm from "@/components/management/WebsiteForm";
 import ManagementError from "@/components/management/ManagementError";
 import { prisma } from "@/lib/prisma";
+import { requirePageRole } from "@/services/auth";
+
+export const metadata = {
+  title: "Edit Website",
+  description: "Update website details and client assignment.",
+};
 
 export const dynamic = "force-dynamic";
 
 export default async function EditWebsitePage({ params }) {
+  await requirePageRole(["ADMIN"]);
   let website;
   let clients;
   try {

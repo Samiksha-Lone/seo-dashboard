@@ -41,11 +41,12 @@ function getRedisUrl() {
   return parsedUrl;
 }
 
-function createRedisConnection() {
+function createRedisConnection(options = {}) {
   const redisUrl = getRedisUrl();
   return new Redis(redisUrl.toString(), {
     maxRetriesPerRequest: null,
     ...(redisUrl.protocol === 'rediss:' ? { tls: {} } : {}),
+    ...options,
   });
 }
 

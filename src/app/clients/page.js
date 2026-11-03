@@ -3,10 +3,17 @@ import DashboardShell from "@/components/layout/DashboardShell";
 import ClientDialogButton from "@/components/management/ClientDialogButton";
 import ManagementError from "@/components/management/ManagementError";
 import { prisma } from "@/lib/prisma";
+import { requirePageRole } from "@/services/auth";
+
+export const metadata = {
+  title: "Clients",
+  description: "Manage client business profiles and their registered websites.",
+};
 
 export const dynamic = "force-dynamic";
 
 export default async function ClientsPage() {
+  await requirePageRole(["ADMIN"]);
   let clients;
   try {
     clients = await prisma.client.findMany({
@@ -18,6 +25,7 @@ export default async function ClientsPage() {
         city: true,
         state: true,
         phone: true,
+        user: { select: { email: true, isActive: true } },
         _count: { select: { websites: true } },
       },
     });
@@ -66,7 +74,7 @@ export default async function ClientsPage() {
                 <table className="w-full text-left">
                   <thead className="bg-slate-50">
                     <tr>
-                      {["Business", "Type", "Location", "Phone", "Websites", "Actions"].map((heading) => (
+                      {["Business", "Type", "Location", "Portal account", "Websites", "Actions"].map((heading) => (
                         <th key={heading} scope="col" className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">{heading}</th>
                       ))}
                     </tr>
@@ -81,7 +89,9 @@ export default async function ClientsPage() {
                         </td>
                         <td className="px-5 py-4 text-sm text-slate-600">{client.businessType}</td>
                         <td className="px-5 py-4 text-sm text-slate-600">{client.city}, {client.state}</td>
-                        <td className="px-5 py-4 text-sm text-slate-600">{client.phone || "—"}</td>
+                        <td className="px-5 py-4 text-sm text-slate-600">
+                          {client.user ? <><span className="block">{client.user.email}</span><span className={`text-xs ${client.user.isActive ? "text-emerald-700" : "text-slate-500"}`}>{client.user.isActive ? "Active" : "Inactive"}</span></> : "Not provisioned"}
+                        </td>
                         <td className="px-5 py-4 text-sm font-medium tabular-nums text-slate-800">{client._count.websites}</td>
                         <td className="px-5 py-4">
                           <ClientDialogButton client={client} label="Edit" variant="text" />

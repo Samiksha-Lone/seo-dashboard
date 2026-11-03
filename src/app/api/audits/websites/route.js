@@ -4,7 +4,10 @@ import { prisma } from '@/lib/prisma';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request) {
+  const { authorizeApi } = require("../../../../services/auth");
+  const auth = await authorizeApi(request, prisma, { roles: ["ADMIN"] });
+  if (auth.response) return auth.response;
   try {
     const websites = await prisma.website.findMany({
       orderBy: [{ client: { businessName: 'asc' } }, { name: 'asc' }],

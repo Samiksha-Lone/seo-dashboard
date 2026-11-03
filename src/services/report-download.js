@@ -1,4 +1,8 @@
-const { InvalidReportKeyError, localReportStorage } = require('./report-storage');
+const {
+  InvalidReportKeyError,
+  ReportObjectNotFoundError,
+  reportStorage,
+} = require('./report-storage');
 
 function isValidAuditId(value) {
   return typeof value === 'string' && /^[a-zA-Z0-9_-]{1,200}$/.test(value);
@@ -8,10 +12,29 @@ function errorResponse(status, message) {
   return { status, body: { error: message } };
 }
 
+function createDownloadFileName(websiteName, auditDate) {
+  const date = auditDate instanceof Date && !Number.isNaN(auditDate.getTime())
+    ? auditDate.toISOString().slice(0, 10)
+    : 'unknown-date';
+  const safeWebsiteName = typeof websiteName === 'string'
+    ? websiteName
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9]+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+      .slice(0, 60)
+      .replace(/-+$/g, '')
+    : '';
+
+  return `SEO-Audit-${safeWebsiteName || 'Report'}-${date}.pdf`;
+}
+
 async function getAuditReportDownload(
   auditId,
   prisma,
-  storage = localReportStorage
+  storage = reportStorage,
+  { user } = {}
 ) {
   if (!isValidAuditId(auditId)) {
     return errorResponse(400, 'Invalid audit ID.');
@@ -19,11 +42,20 @@ async function getAuditReportDownload(
 
   let audit;
   try {
-    audit = await prisma.audit.findUnique({
-      where: { id: auditId },
+    if (user && user.role === 'CLIENT' && !user.clientId) {
+      return errorResponse(404, 'Report not found.');
+    }
+    const where = { id: auditId };
+    if (user && user.role === 'CLIENT') {
+      where.website = { clientId: user.clientId };
+    }
+    audit = await prisma.audit.findFirst({
+      where,
       select: {
+        createdAt: true,
+        website: { select: { name: true } },
         report: {
-          select: { fileName: true, filePath: true },
+          select: { filePath: true },
         },
       },
     });
@@ -40,12 +72,20 @@ async function getAuditReportDownload(
   }
 
   try {
+    const fileName = createDownloadFileName(audit.website && audit.website.name, audit.createdAt);
+    if (typeof storage.createSignedDownloadUrl === 'function') {
+      const signedUrl = await storage.createSignedDownloadUrl(audit.report.filePath, fileName);
+      return {
+        status: 302,
+        body: null,
+        headers: {
+          Location: signedUrl,
+          'Cache-Control': 'private, no-store',
+        },
+      };
+    }
+
     const pdf = await storage.readReport(audit.report.filePath);
-    const fallbackName = `seo-audit-${auditId}.pdf`;
-    const fileName = typeof audit.report.fileName === 'string' &&
-      /^seo-audit-[a-zA-Z0-9_-]{1,200}\.pdf$/.test(audit.report.fileName)
-      ? audit.report.fileName
-      : fallbackName;
 
     return {
       status: 200,
@@ -59,7 +99,11 @@ async function getAuditReportDownload(
       },
     };
   } catch (error) {
-    if (error instanceof InvalidReportKeyError || (error && error.code === 'ENOENT')) {
+    if (
+      error instanceof InvalidReportKeyError ||
+      error instanceof ReportObjectNotFoundError ||
+      (error && error.code === 'ENOENT')
+    ) {
       return errorResponse(404, 'Report file not found.');
     }
     console.error('Audit report file read failed:', {
@@ -70,4 +114,4 @@ async function getAuditReportDownload(
   }
 }
 
-module.exports = { getAuditReportDownload, isValidAuditId };
+module.exports = { createDownloadFileName, getAuditReportDownload, isValidAuditId };

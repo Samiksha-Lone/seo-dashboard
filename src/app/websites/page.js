@@ -5,10 +5,17 @@ import ManagementError from "@/components/management/ManagementError";
 import WebsiteDialogButton from "@/components/management/WebsiteDialogButton";
 import { formatManagementDate } from "@/lib/management/format";
 import { prisma } from "@/lib/prisma";
+import { requirePageRole } from "@/services/auth";
+
+export const metadata = {
+  title: "Websites",
+  description: "Manage registered websites and review their SEO audit activity.",
+};
 
 export const dynamic = "force-dynamic";
 
 export default async function WebsitesPage() {
+  await requirePageRole(["ADMIN"]);
   let websites;
   let clients;
   try {

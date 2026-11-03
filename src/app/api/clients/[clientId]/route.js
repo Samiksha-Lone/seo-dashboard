@@ -12,7 +12,10 @@ function logFailure(operation, error) {
   });
 }
 
-export async function GET(_request, { params }) {
+export async function GET(request, { params }) {
+  const { authorizeApi } = require("../../../../services/auth");
+  const auth = await authorizeApi(request, prisma, { roles: ["ADMIN"] });
+  if (auth.response) return auth.response;
   try {
     const client = await prisma.client.findUnique({
       where: { id: params.clientId },
@@ -62,6 +65,9 @@ export async function GET(_request, { params }) {
 }
 
 export async function PATCH(request, { params }) {
+  const { authorizeApi } = require("../../../../services/auth");
+  const auth = await authorizeApi(request, prisma, { roles: ["ADMIN"] });
+  if (auth.response) return auth.response;
   let body;
   try {
     body = await request.json();
@@ -102,7 +108,10 @@ export async function PATCH(request, { params }) {
   }
 }
 
-export async function DELETE(_request, { params }) {
+export async function DELETE(request, { params }) {
+  const { authorizeApi } = require("../../../../services/auth");
+  const auth = await authorizeApi(request, prisma, { roles: ["ADMIN"] });
+  if (auth.response) return auth.response;
   try {
     const result = await prisma.client.deleteMany({
       where: {

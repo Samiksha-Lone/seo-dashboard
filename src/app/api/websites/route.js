@@ -19,7 +19,10 @@ function isConflict(error) {
   return error?.code === "P2034";
 }
 
-export async function GET() {
+export async function GET(request) {
+  const { authorizeApi } = require("../../../services/auth");
+  const auth = await authorizeApi(request, prisma, { roles: ["ADMIN"] });
+  if (auth.response) return auth.response;
   try {
     const websites = await prisma.website.findMany({
       orderBy: { name: "asc" },
@@ -51,6 +54,9 @@ export async function GET() {
 }
 
 export async function POST(request) {
+  const { authorizeApi } = require("../../../services/auth");
+  const auth = await authorizeApi(request, prisma, { roles: ["ADMIN"] });
+  if (auth.response) return auth.response;
   let body;
   try {
     body = await request.json();

@@ -6,12 +6,20 @@ import DeleteRecordButton from "@/components/management/DeleteRecordButton";
 import ClientDialogButton from "@/components/management/ClientDialogButton";
 import ManagementError from "@/components/management/ManagementError";
 import WebsiteDialogButton from "@/components/management/WebsiteDialogButton";
+import ClientAccountManager from "@/components/management/ClientAccountManager";
 import { formatManagementDate } from "@/lib/management/format";
 import { prisma } from "@/lib/prisma";
+import { requirePageRole } from "@/services/auth";
+
+export const metadata = {
+  title: "Client Details",
+  description: "Review a client profile, assigned websites, and audit activity.",
+};
 
 export const dynamic = "force-dynamic";
 
 export default async function ClientDetailPage({ params }) {
+  await requirePageRole(["ADMIN"]);
   let client;
   try {
     client = await prisma.client.findUnique({
@@ -24,6 +32,7 @@ export default async function ClientDetailPage({ params }) {
         state: true,
         phone: true,
         createdAt: true,
+        user: { select: { id: true, email: true, isActive: true, mustChangePassword: true } },
         websites: {
           orderBy: { name: "asc" },
           select: {
@@ -34,7 +43,13 @@ export default async function ClientDetailPage({ params }) {
             audits: {
               take: 5,
               orderBy: { createdAt: "desc" },
-              select: { id: true, status: true, overallScore: true, createdAt: true },
+              select: {
+                id: true,
+                status: true,
+                overallScore: true,
+                createdAt: true,
+                report: { select: { id: true } },
+              },
             },
           },
         },
@@ -84,6 +99,8 @@ export default async function ClientDetailPage({ params }) {
           ))}
         </section>
 
+        <ClientAccountManager clientId={client.id} account={client.user} />
+
         <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
           <div className="flex items-center justify-between gap-3 border-b border-slate-100 p-5">
             <div>
@@ -125,6 +142,14 @@ export default async function ClientDetailPage({ params }) {
                     <p className="mt-1 text-xs text-slate-500">{formatManagementDate(audit.createdAt)}</p>
                   </div>
                   <div className="flex items-center gap-3">
+                    {audit.report && (
+                      <Link
+                        href={`/reports/${audit.report.id}`}
+                        className="text-xs font-semibold text-indigo-700 hover:text-indigo-900"
+                      >
+                        View report
+                      </Link>
+                    )}
                     <span className="text-sm font-medium tabular-nums text-slate-700">{audit.overallScore == null ? "—" : `${audit.overallScore} / 100`}</span>
                     <AuditStatusBadge status={audit.status} />
                   </div>

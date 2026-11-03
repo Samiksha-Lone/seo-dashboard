@@ -1,10 +1,12 @@
 const { USE_MOCKS } = require('../mocks');
 const mockData = require('../mocks/dataforseo.mock');
 
-async function getDataForSEO() {
-  if (USE_MOCKS) return mockData;
+async function getDataForSEO({ useMocks = USE_MOCKS } = {}) {
+  if (useMocks) return mockData;
 
-  // Real DataForSEO API call goes here
+  const error = new Error('DataForSEO integration is not configured.');
+  error.code = 'INTEGRATION_NOT_CONFIGURED';
+  throw error;
 }
 
 module.exports = { getDataForSEO };

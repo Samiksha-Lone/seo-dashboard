@@ -4,6 +4,12 @@ import RecentAudits from "@/components/dashboard/RecentAudits";
 import AuditStatusBadge from "@/components/dashboard/AuditStatusBadge";
 import DashboardEmptyState from "@/components/dashboard/DashboardEmptyState";
 import { getDashboardOverview } from "@/lib/dashboard/data";
+import { requirePageRole } from "@/services/auth";
+
+export const metadata = {
+  title: "Dashboard",
+  description: "Review SEO performance, audit activity, and key workspace metrics.",
+};
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +35,7 @@ function DashboardError() {
 }
 
 export default async function Home() {
+  await requirePageRole(["ADMIN"]);
   let overview;
 
   try {

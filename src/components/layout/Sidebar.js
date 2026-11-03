@@ -8,7 +8,7 @@ const navigation = [
   { label: "Clients", href: "/clients", icon: "clients", available: true },
   { label: "Websites", href: "/websites", icon: "websites", available: true },
   { label: "Audits", href: "/audits", icon: "audits", available: true },
-  { label: "Reports", icon: "reports" },
+  { label: "Reports", href: "/reports", icon: "reports", available: true },
 ];
 
 function NavIcon({ name }) {
@@ -68,12 +68,10 @@ export default function Sidebar({ mobileOpen, onNavigate }) {
           const commonClass = `flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm ${
             active
               ? "bg-indigo-50 font-semibold text-indigo-700"
-              : item.available
-                ? "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
-                : "cursor-default text-slate-400"
+              : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
           }`;
 
-          return item.available ? (
+          return (
             <Link
               key={item.label}
               href={item.href}
@@ -84,14 +82,6 @@ export default function Sidebar({ mobileOpen, onNavigate }) {
               <NavIcon name={item.icon} />
               <span>{item.label}</span>
             </Link>
-          ) : (
-            <div key={item.label} className={commonClass} aria-disabled="true">
-              <NavIcon name={item.icon} />
-              <span className="flex-1">{item.label}</span>
-              <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
-                Soon
-              </span>
-            </div>
           );
         })}
       </nav>
@@ -101,9 +91,6 @@ export default function Sidebar({ mobileOpen, onNavigate }) {
           <p className="text-xs font-semibold text-slate-700">SEO workspace</p>
           <p className="mt-1 text-xs leading-5 text-slate-500">
             Manage your client profiles and their registered websites.
-          </p>
-          <p className="mt-2 border-t border-slate-200 pt-2 text-[11px] leading-4 text-slate-500">
-            Authentication is not implemented. This dashboard is not access-controlled.
           </p>
         </div>
       </div>

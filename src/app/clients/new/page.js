@@ -1,8 +1,15 @@
 import Link from "next/link";
 import DashboardShell from "@/components/layout/DashboardShell";
 import ClientForm from "@/components/management/ClientForm";
+import { requirePageRole } from "@/services/auth";
 
-export default function NewClientPage() {
+export const metadata = {
+  title: "Add Client",
+  description: "Create a client business profile in the EDGELINK SEO dashboard.",
+};
+
+export default async function NewClientPage() {
+  await requirePageRole(["ADMIN"]);
   return (
     <DashboardShell>
       <div className="mx-auto max-w-3xl space-y-6">

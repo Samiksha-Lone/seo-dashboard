@@ -3,10 +3,17 @@ import DashboardShell from "@/components/layout/DashboardShell";
 import WebsiteForm from "@/components/management/WebsiteForm";
 import ManagementError from "@/components/management/ManagementError";
 import { prisma } from "@/lib/prisma";
+import { requirePageRole } from "@/services/auth";
+
+export const metadata = {
+  title: "Add Website",
+  description: "Register a website and assign it to a client.",
+};
 
 export const dynamic = "force-dynamic";
 
 export default async function NewWebsitePage({ searchParams }) {
+  await requirePageRole(["ADMIN"]);
   let clients;
   try {
     clients = await prisma.client.findMany({

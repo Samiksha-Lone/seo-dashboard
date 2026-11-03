@@ -7,10 +7,17 @@ import WebsiteDialogButton from "@/components/management/WebsiteDialogButton";
 import ManagementError from "@/components/management/ManagementError";
 import { formatManagementDate } from "@/lib/management/format";
 import { prisma } from "@/lib/prisma";
+import { requirePageRole } from "@/services/auth";
+
+export const metadata = {
+  title: "Website Details",
+  description: "Review website information, its client, and audit history.",
+};
 
 export const dynamic = "force-dynamic";
 
 export default async function WebsiteDetailPage({ params }) {
+  await requirePageRole(["ADMIN"]);
   let website;
   let clients;
   try {

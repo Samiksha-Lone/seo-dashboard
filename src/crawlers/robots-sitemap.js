@@ -1,3 +1,5 @@
+const { safeFetch } = require('./safe-fetch');
+
 function getHttpError(response) {
   const statusText = response.statusText ? ` ${response.statusText}` : '';
   return `HTTP ${response.status}${statusText}`;
@@ -5,7 +7,7 @@ function getHttpError(response) {
 
 async function fetchResource(url) {
   try {
-    const response = await fetch(url);
+    const response = await safeFetch(url);
     if (response.ok) {
       return { url, status: 'available', httpStatus: response.status, error: null, response };
     }

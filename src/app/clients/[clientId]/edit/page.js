@@ -4,10 +4,17 @@ import DashboardShell from "@/components/layout/DashboardShell";
 import ClientForm from "@/components/management/ClientForm";
 import ManagementError from "@/components/management/ManagementError";
 import { prisma } from "@/lib/prisma";
+import { requirePageRole } from "@/services/auth";
+
+export const metadata = {
+  title: "Edit Client",
+  description: "Update a client business profile.",
+};
 
 export const dynamic = "force-dynamic";
 
 export default async function EditClientPage({ params }) {
+  await requirePageRole(["ADMIN"]);
   let client;
   try {
     client = await prisma.client.findUnique({

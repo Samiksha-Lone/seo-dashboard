@@ -1,10 +1,12 @@
 const { USE_MOCKS } = require('../mocks');
 const mockData = require('../mocks/pagespeed.mock');
 
-async function getPageSpeed(url) {
-  if (USE_MOCKS) return mockData;
+async function getPageSpeed(url, { useMocks = USE_MOCKS } = {}) {
+  if (useMocks) return mockData;
 
-  // Real PageSpeed Insights API call goes here
+  const error = new Error('PageSpeed Insights integration is not configured.');
+  error.code = 'INTEGRATION_NOT_CONFIGURED';
+  throw error;
 }
 
 module.exports = { getPageSpeed };

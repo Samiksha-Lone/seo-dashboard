@@ -1,0 +1,1 @@
+ALTER TYPE "RecommendationPriority" ADD VALUE IF NOT EXISTS 'CRITICAL';

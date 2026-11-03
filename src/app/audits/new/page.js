@@ -1,8 +1,15 @@
 import Link from "next/link";
 import DashboardShell from "@/components/layout/DashboardShell";
 import AuditCreateForm from "@/components/audits/AuditCreateForm";
+import { requirePageRole } from "@/services/auth";
 
-export default function NewAuditPage() {
+export const metadata = {
+  title: "Start an Audit",
+  description: "Queue an SEO audit for a registered website.",
+};
+
+export default async function NewAuditPage() {
+  await requirePageRole(["ADMIN"]);
   return (
     <DashboardShell>
       <div className="mx-auto max-w-3xl space-y-6">

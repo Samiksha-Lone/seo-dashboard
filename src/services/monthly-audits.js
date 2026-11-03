@@ -64,13 +64,6 @@ async function scheduleMonthlyAudits({
       id: true,
       url: true,
       client: { select: { id: true } },
-      audits: {
-        where: {
-          createdAt: { gte: monthStart, lt: nextMonthStart },
-        },
-        take: 1,
-        select: { id: true },
-      },
     },
   });
 
@@ -88,17 +81,20 @@ async function scheduleMonthlyAudits({
       continue;
     }
 
-    if (website.audits.length > 0) {
-      summary.skipped += 1;
-      continue;
-    }
-
     try {
-      await enqueueAudit({
+      const result = await enqueueAudit({
         url: website.url,
         clientId: website.client.id,
+      }, {
+        monthlyWindow: { monthStart, nextMonthStart },
+        websiteId: website.id,
       });
-      summary.queued += 1;
+
+      if (result && result.monthlyDuplicate) {
+        summary.skipped += 1;
+      } else {
+        summary.queued += 1;
+      }
     } catch (error) {
       summary.failed += 1;
       failures.push({

@@ -23,7 +23,7 @@ function makePrisma(websites) {
     calls,
     website: {
       async findMany(query) {
-        calls.push(query);
+        calls.push({ type: 'website.findMany', query });
         if (websites instanceof Error) throw websites;
         return websites;
       },
@@ -91,12 +91,12 @@ test('no registered websites returns an empty scheduling summary', async () => {
   });
 });
 
-test('eligible websites are queued independently through the existing enqueue service', async () => {
+test('eligible websites are queued through the existing enqueue service with the UTC month window', async () => {
   const websites = [makeWebsite('one'), makeWebsite('two')];
   const prisma = makePrisma(websites);
   const queued = [];
   const result = await request(prisma, {
-    enqueueAudit: async (input) => queued.push(input),
+    enqueueAudit: async (input, options) => queued.push({ input, options }),
   });
 
   assert.equal(result.status, 200);
@@ -107,16 +107,15 @@ test('eligible websites are queued independently through the existing enqueue se
     failed: 0,
   });
   assert.deepEqual(queued, websites.map((website) => ({
-    url: website.url,
-    clientId: website.client.id,
-  })));
-  const where = prisma.calls[0].select.audits.where;
-  assert.deepEqual(where, {
-    createdAt: {
-      gte: new Date('2026-11-01T00:00:00.000Z'),
-      lt: new Date('2026-12-01T00:00:00.000Z'),
+    input: { url: website.url, clientId: website.client.id },
+    options: {
+      websiteId: website.id,
+      monthlyWindow: {
+        monthStart: new Date('2026-11-01T00:00:00.000Z'),
+        nextMonthStart: new Date('2026-12-01T00:00:00.000Z'),
+      },
     },
-  });
+  })));
 });
 
 test('existing audits of every lifecycle status are skipped', async () => {
@@ -125,7 +124,10 @@ test('existing audits of every lifecycle status are skipped', async () => {
     makeWebsite(`existing_${index}`, { audits: [{ id: `audit_${index}`, status }] })
   );
   const result = await request(makePrisma(websites), {
-    enqueueAudit: async () => assert.fail('Existing monthly audit must not be enqueued again.'),
+    enqueueAudit: async ({ url }) => {
+      const website = websites.find((entry) => entry.url === url);
+      return website.audits.length > 0 ? { monthlyDuplicate: true } : {};
+    },
   });
 
   assert.equal(result.status, 200);
@@ -185,13 +187,15 @@ test('one enqueue failure does not stop scheduling other websites', async () => 
   assert.equal(JSON.stringify(result.body).includes('Redis URL'), false);
 });
 
-test('repeated cron requests skip audits created by the first request', async () => {
+test('repeated cron requests skip monthly audits returned by the enqueue service', async () => {
   const website = makeWebsite('same');
   const prisma = makePrisma([website]);
   let enqueueCalls = 0;
   const enqueueAudit = async () => {
+    if (website.audits.length > 0) return { monthlyDuplicate: true };
     enqueueCalls += 1;
     website.audits.push({ id: 'created_this_month', status: 'QUEUED' });
+    return { auditId: 'created_this_month', status: 'QUEUED' };
   };
 
   const first = await request(prisma, { enqueueAudit });

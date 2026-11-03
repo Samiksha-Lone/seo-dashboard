@@ -83,7 +83,11 @@ function RecommendationCard({ recommendation }) {
   );
 }
 
-export default function AuditDetail({ auditId }) {
+export default function AuditDetail({
+  auditId,
+  apiBase = "/api/audits",
+  reportsBase = "/reports",
+}) {
   const [audit, setAudit] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -93,7 +97,7 @@ export default function AuditDetail({ auditId }) {
   const auditStatus = audit?.status;
 
   const loadAudit = useCallback(async (signal) => {
-    const response = await fetch(`/api/audits/${encodeURIComponent(auditId)}`, {
+    const response = await fetch(`${apiBase}/${encodeURIComponent(auditId)}`, {
       signal,
       cache: "no-store",
     });
@@ -103,7 +107,7 @@ export default function AuditDetail({ auditId }) {
     setLastUpdated(new Date());
     setError("");
     setPollError("");
-  }, [auditId]);
+  }, [apiBase, auditId]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -299,10 +303,18 @@ export default function AuditDetail({ auditId }) {
             </p>
           </div>
           {audit.report && (
-            <DownloadReportButton
-              downloadUrl={audit.report.downloadUrl}
-              fileName={audit.report.fileName}
-            />
+            <div className="flex flex-col items-start gap-3 sm:items-end">
+              <Link
+                href={`${reportsBase}/${encodeURIComponent(audit.report.id)}`}
+                className="text-sm font-semibold text-indigo-700 hover:text-indigo-900"
+              >
+                View report details
+              </Link>
+              <DownloadReportButton
+                downloadUrl={audit.report.downloadUrl}
+                fileName={audit.report.fileName}
+              />
+            </div>
           )}
         </div>
         {audit.report ? (

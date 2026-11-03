@@ -13,8 +13,16 @@ const geistMono = localFont({
 });
 
 export const metadata = {
-  title: "Overview | Edgelink SEO",
-  description: "SEO audit and website performance dashboard",
+  title: {
+    default: "Dashboard | EDGELINK SEO",
+    template: "%s | EDGELINK SEO",
+  },
+  description: "Manage websites, SEO audits, and reports with the EDGELINK SEO dashboard.",
+  applicationName: "EDGELINK SEO",
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+  },
 };
 
 export default function RootLayout({ children }) {

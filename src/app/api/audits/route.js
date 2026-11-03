@@ -22,6 +22,9 @@ function parseBoundedInteger(value, fallback, maximum) {
 }
 
 export async function GET(request) {
+  const { authorizeApi } = require("../../../services/auth");
+  const auth = await authorizeApi(request, prisma, { roles: ["ADMIN"] });
+  if (auth.response) return auth.response;
   const searchParams = new URL(request.url).searchParams;
   const status = searchParams.get('status');
   if (status && !auditStatuses.has(status)) {
@@ -81,6 +84,9 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
+  const { authorizeApi } = require("../../../services/auth");
+  const auth = await authorizeApi(request, prisma, { roles: ["ADMIN"] });
+  if (auth.response) return auth.response;
   let body;
   try {
     body = await request.json();

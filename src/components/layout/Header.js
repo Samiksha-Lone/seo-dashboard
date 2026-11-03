@@ -1,16 +1,29 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import LogoutButton from "@/components/auth/LogoutButton";
 
 export default function Header({ onMenuClick }) {
   const pathname = usePathname();
+  const [user, setUser] = useState(null);
+  useEffect(() => {
+    let active = true;
+    fetch("/api/auth/session", { cache: "no-store" })
+      .then((response) => response.ok ? response.json() : null)
+      .then((payload) => { if (active) setUser(payload?.data?.user || null); })
+      .catch(() => { if (active) setUser(null); });
+    return () => { active = false; };
+  }, []);
   const section = pathname.startsWith("/clients")
     ? "Clients"
     : pathname.startsWith("/websites")
       ? "Websites"
       : pathname.startsWith("/audits")
         ? "Audits"
-      : "Overview";
+        : pathname.startsWith("/reports")
+          ? "Reports"
+          : "Overview";
 
   return (
     <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur sm:px-6 lg:px-10">
@@ -33,18 +46,12 @@ export default function Header({ onMenuClick }) {
           </p>
         </div>
       </div>
-      <div
-        className="flex items-center gap-2 rounded-full border border-slate-200 bg-white py-1 pl-1 pr-3"
-        aria-label="Profile placeholder, UI only"
-        title="UI-only profile placeholder. Authentication is not implemented."
-      >
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-600">
-          UI
-        </span>
-        <span className="hidden text-left sm:block">
-          <span className="block text-xs font-medium text-slate-700">Profile placeholder</span>
-          <span className="block text-[10px] text-slate-500">UI only</span>
-        </span>
+      <div className="flex items-center gap-2">
+        <div className="hidden text-right sm:block">
+          <p className="text-xs font-medium text-slate-700">{user?.name || "Workspace"}</p>
+          <p className="text-[10px] text-slate-500">{user?.email || ""}</p>
+        </div>
+        <LogoutButton />
       </div>
     </header>
   );

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import PasswordInput from "@/components/ui/PasswordInput";
 
 const fieldClass =
   "mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100";
@@ -17,6 +18,9 @@ export default function ClientForm({ client, onSaved, onCancel }) {
   const [error, setError] = useState("");
   const [savedClient, setSavedClient] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [provisionAccount, setProvisionAccount] = useState(false);
+  const [accountEmail, setAccountEmail] = useState("");
+  const [temporaryPassword, setTemporaryPassword] = useState("");
 
   function updateField(event) {
     setValues((current) => ({ ...current, [event.target.name]: event.target.value }));
@@ -33,7 +37,13 @@ export default function ClientForm({ client, onSaved, onCancel }) {
         {
           method: client ? "PATCH" : "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...values, phone: values.phone.trim() || null }),
+          body: JSON.stringify({
+            ...values,
+            phone: values.phone.trim() || null,
+            ...(!client && provisionAccount
+              ? { account: { email: accountEmail, temporaryPassword } }
+              : {}),
+          }),
         }
       );
       const result = await response.json();
@@ -128,6 +138,37 @@ export default function ClientForm({ client, onSaved, onCancel }) {
           />
         </label>
       </div>
+
+      {!client && (
+        <section className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+          <label className="flex items-start gap-3 text-sm font-medium text-slate-800">
+            <input
+              type="checkbox"
+              checked={provisionAccount}
+              onChange={(event) => setProvisionAccount(event.target.checked)}
+              className="mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+            />
+            <span>
+              Create a client portal login
+              <span className="mt-1 block text-xs font-normal leading-5 text-slate-500">
+                The client must change the temporary password on first sign-in. Credentials are not emailed.
+              </span>
+            </span>
+          </label>
+          {provisionAccount && (
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <label className="text-sm font-medium text-slate-700">
+                Login email
+                <input required type="email" autoComplete="off" maxLength={254} value={accountEmail} onChange={(event) => setAccountEmail(event.target.value)} className={fieldClass} />
+              </label>
+              <label className="text-sm font-medium text-slate-700">
+                Temporary password (12+ characters)
+                <PasswordInput required autoComplete="new-password" minLength={12} maxLength={1024} value={temporaryPassword} onChange={(event) => setTemporaryPassword(event.target.value)} className={fieldClass} />
+              </label>
+            </div>
+          )}
+        </section>
+      )}
 
       <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
         {onCancel ? (

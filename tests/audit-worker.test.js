@@ -71,6 +71,18 @@ test('worker marks an audit complete only after audit data and PDF report succee
   assert.equal(result.status, 'COMPLETED');
 });
 
+test('notification failures do not mark a completed audit as failed', async () => {
+  const { state, dependencies } = createWorkerDependencies();
+  dependencies.generateAndPersistAuditReport = async () => ({
+    report: { fileName: 'seo-audit-audit_1.pdf' },
+    notifications: { whatsApp: 'failed', email: 'failed' },
+  });
+  const result = await processAuditJob(job, dependencies);
+  assert.equal(result.status, 'COMPLETED');
+  assert.equal(state.status, 'COMPLETED');
+  assert.equal(state.errorMessage, null);
+});
+
 test('worker marks PDF generation failures as failed and rethrows for queue retries', async () => {
   const { state, dependencies } = createWorkerDependencies({ reportFails: true });
   await assert.rejects(processAuditJob(job, dependencies), /PDF generation failed/);
