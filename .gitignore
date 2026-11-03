@@ -11,6 +11,7 @@
 
 # next.js
 /.next/
+/.next-dev/
 /out/
 
 # production
@@ -51,3 +52,4 @@ next-env.d.ts
 *.temp
 
 /src/generated/prisma
+/.local-reports/

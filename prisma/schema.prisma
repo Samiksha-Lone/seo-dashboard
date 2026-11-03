@@ -154,10 +154,11 @@ model AuditRecommendation {
 }
 
 model Report {
-  id          String   @id @default(cuid())
-  fileName    String
-  filePath    String
-  generatedAt DateTime @default(now())
+  id                      String    @id @default(cuid())
+  fileName                String
+  filePath                String
+  generatedAt             DateTime  @default(now())
+  notificationAttemptedAt DateTime?
 
   auditId String @unique
   audit   Audit  @relation(fields: [auditId], references: [id], onDelete: Cascade)

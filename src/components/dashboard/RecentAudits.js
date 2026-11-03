@@ -1,4 +1,5 @@
 import AuditStatusBadge from "@/components/dashboard/AuditStatusBadge";
+import Link from "next/link";
 
 function formatDate(value) {
   if (!value) return "—";
@@ -18,7 +19,9 @@ function AuditDesktopRow({ audit }) {
     <tr className="border-t border-slate-100">
       <td className="px-5 py-4">
         <div className="max-w-[260px]">
-          <p className="truncate text-sm font-medium text-slate-900">{websiteName}</p>
+          <Link href={`/audits/${audit.id}`} className="truncate text-sm font-medium text-indigo-700 hover:text-indigo-900">
+            {websiteName}
+          </Link>
           {websiteUrl && <p className="mt-1 truncate text-xs text-slate-500">{websiteUrl}</p>}
         </div>
       </td>
@@ -38,7 +41,7 @@ function AuditMobileCard({ audit }) {
   const score = audit.score == null ? "—" : `${audit.score}`;
 
   return (
-    <article className="border-t border-slate-100 p-4">
+    <Link href={`/audits/${audit.id}`} className="block border-t border-slate-100 p-4 hover:bg-slate-50">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-slate-900">{websiteName}</p>
@@ -51,7 +54,7 @@ function AuditMobileCard({ audit }) {
         <span>Score: {score}{audit.score == null ? "" : " / 100"}</span>
         <span>{formatDate(audit.createdAt)}</span>
       </div>
-    </article>
+    </Link>
   );
 }
 

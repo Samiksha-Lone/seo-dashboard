@@ -88,15 +88,6 @@ async function getPrismaClient() {
 async function persistAudit({ prisma, clientId, auditId, auditUrl, websiteName, startedAt, signals, report }) {
   try {
     return await prisma.$transaction(async (transaction) => {
-      const client = await transaction.client.findUnique({
-        where: { id: clientId },
-        select: { id: true },
-      });
-
-      if (!client) {
-        throw new Error(`Client "${clientId}" was not found.`);
-      }
-
       let website;
       if (auditId) {
         const existingAudit = await transaction.audit.findUnique({
@@ -162,14 +153,14 @@ async function persistAudit({ prisma, clientId, auditId, auditUrl, websiteName, 
 
       const auditData = {
         auditVersion: report.audit_version,
-        status: 'COMPLETED',
+        status: 'PROCESSING',
         overallScore: report.overall_score,
         scoreBreakdown: report.score_breakdown,
         result: report,
         signals,
         errorMessage: null,
         startedAt,
-        completedAt: new Date(),
+        completedAt: null,
         websiteId: website.id,
         issues: { create: issueRecords },
         recommendations: { create: recommendationRecords },
@@ -178,7 +169,6 @@ async function persistAudit({ prisma, clientId, auditId, auditUrl, websiteName, 
       if (auditId) {
         await transaction.auditIssue.deleteMany({ where: { auditId } });
         await transaction.auditRecommendation.deleteMany({ where: { auditId } });
-        await transaction.report.deleteMany({ where: { auditId } });
         return transaction.audit.update({
           where: { id: auditId },
           data: auditData,
@@ -200,7 +190,7 @@ async function persistAudit({ prisma, clientId, auditId, auditUrl, websiteName, 
           report: true,
         },
       });
-    });
+    }, { timeout: 20_000 });
   } catch (error) {
     console.error('Audit persistence failed:', {
       name: error && error.name ? error.name : 'Error',
@@ -286,4 +276,4 @@ async function runAudit(url, options = {}) {
   };
 }
 
-module.exports = { runAudit };
+module.exports = { runAudit, persistAudit };

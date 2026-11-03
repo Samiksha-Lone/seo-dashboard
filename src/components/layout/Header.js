@@ -1,6 +1,17 @@
 "use client";
 
+import { usePathname } from "next/navigation";
+
 export default function Header({ onMenuClick }) {
+  const pathname = usePathname();
+  const section = pathname.startsWith("/clients")
+    ? "Clients"
+    : pathname.startsWith("/websites")
+      ? "Websites"
+      : pathname.startsWith("/audits")
+        ? "Audits"
+      : "Overview";
+
   return (
     <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur sm:px-6 lg:px-10">
       <div className="flex items-center gap-3">
@@ -16,8 +27,10 @@ export default function Header({ onMenuClick }) {
           </svg>
         </button>
         <div>
-          <p className="text-sm font-semibold text-slate-900">Overview</p>
-          <p className="hidden text-xs text-slate-500 sm:block">SEO performance at a glance</p>
+          <p className="text-sm font-semibold text-slate-900">{section}</p>
+          <p className="hidden text-xs text-slate-500 sm:block">
+            {section === "Overview" ? "SEO performance at a glance" : `Manage ${section.toLowerCase()} in your workspace`}
+          </p>
         </div>
       </div>
       <div

@@ -43,7 +43,6 @@ async function startAuditAttempt(prisma, { auditId, clientId }) {
 
     await transaction.auditIssue.deleteMany({ where: { auditId } });
     await transaction.auditRecommendation.deleteMany({ where: { auditId } });
-    await transaction.report.deleteMany({ where: { auditId } });
     await transaction.audit.update({
       where: { id: auditId },
       data: {
@@ -79,7 +78,7 @@ async function markAuditFailed(prisma, auditId, error) {
   }
 }
 
-async function processAuditJob(job) {
+async function processAuditJob(job, dependencies = {}) {
   const { auditId, url, clientId } = job.data || {};
   if (
     typeof auditId !== 'string' ||
@@ -89,7 +88,7 @@ async function processAuditJob(job) {
     throw new Error('Audit job must include auditId, url, and clientId.');
   }
 
-  const prisma = await getPrismaClient();
+  const prisma = await (dependencies.getPrismaClient || getPrismaClient)();
   try {
     const attempt = await startAuditAttempt(prisma, { auditId, clientId });
     if (attempt.alreadyCompleted) {
@@ -106,8 +105,14 @@ async function processAuditJob(job) {
       attempt: job.attemptsMade + 1,
     });
 
-    const { runAudit } = require('../services/audit');
+    const { runAudit } = dependencies.runAudit
+      ? { runAudit: dependencies.runAudit }
+      : require('../services/audit');
     const result = await runAudit(url, { clientId, auditId });
+    const { generateAndPersistAuditReport } = dependencies.generateAndPersistAuditReport
+      ? { generateAndPersistAuditReport: dependencies.generateAndPersistAuditReport }
+      : require('../services/audit-report');
+    const reportResult = await generateAndPersistAuditReport(prisma, auditId);
 
     await prisma.audit.update({
       where: { id: auditId },
@@ -119,7 +124,7 @@ async function processAuditJob(job) {
     });
 
     console.info('Audit processing completed.', { auditId, jobId: job.id });
-    return { auditId, status: 'COMPLETED', result };
+    return { auditId, status: 'COMPLETED', result, report: reportResult.report };
   } catch (error) {
     await markAuditFailed(prisma, auditId, error);
     console.error('Audit processing attempt failed.', {

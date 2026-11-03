@@ -5,9 +5,9 @@ import { usePathname } from "next/navigation";
 
 const navigation = [
   { label: "Overview", href: "/", icon: "overview", available: true },
-  { label: "Clients", icon: "clients" },
-  { label: "Websites", icon: "websites" },
-  { label: "Audits", icon: "audits" },
+  { label: "Clients", href: "/clients", icon: "clients", available: true },
+  { label: "Websites", href: "/websites", icon: "websites", available: true },
+  { label: "Audits", href: "/audits", icon: "audits", available: true },
   { label: "Reports", icon: "reports" },
 ];
 
@@ -62,7 +62,9 @@ export default function Sidebar({ mobileOpen, onNavigate }) {
           Workspace
         </p>
         {navigation.map((item) => {
-          const active = item.href === pathname;
+          const active = item.href === "/"
+            ? pathname === "/"
+            : pathname === item.href || pathname.startsWith(`${item.href}/`);
           const commonClass = `flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm ${
             active
               ? "bg-indigo-50 font-semibold text-indigo-700"
@@ -98,7 +100,7 @@ export default function Sidebar({ mobileOpen, onNavigate }) {
         <div className="rounded-xl bg-slate-50 p-3">
           <p className="text-xs font-semibold text-slate-700">SEO workspace</p>
           <p className="mt-1 text-xs leading-5 text-slate-500">
-            Client and website management are coming in a future release.
+            Manage your client profiles and their registered websites.
           </p>
           <p className="mt-2 border-t border-slate-200 pt-2 text-[11px] leading-4 text-slate-500">
             Authentication is not implemented. This dashboard is not access-controlled.
