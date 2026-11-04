@@ -4,6 +4,59 @@ import { prisma } from '@/lib/prisma';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+function redactDiagnosticString(value) {
+  return value
+    .replace(/\b(?:postgres(?:ql)?|mysql|mariadb|mongodb(?:\+srv)?|redis|rediss|amqp|mssql|prisma(?:\+postgres)?):\/\/[^\s"'<>]+/gi, '[REDACTED_CONNECTION_STRING]')
+    .replace(
+      /(\b(?:password|passwd|pwd|user(?:name)?|token|access[_-]?token|refresh[_-]?token|secret|api[_-]?key|client[_-]?secret|authorization)\b\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^&\s"'<>;,]+)/gi,
+      '$1[REDACTED]'
+    )
+    .replace(/\bBearer\s+[A-Za-z0-9._~+/-]+=*/gi, 'Bearer [REDACTED]')
+    .replace(/\beyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, '[REDACTED_TOKEN]');
+}
+
+function redactDiagnosticValue(value, key, seen = new WeakSet()) {
+  if (key && /password|passwd|pwd|token|secret|credential|api[_-]?key|authorization|user(?:name)?|connection(?:[_-]?(?:string|url))?/i.test(key)) {
+    return '[REDACTED]';
+  }
+  if (typeof value === 'string') return redactDiagnosticString(value);
+  if (value === null || typeof value !== 'object') return value;
+  if (seen.has(value)) return '[Circular]';
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    return value.map((item) => redactDiagnosticValue(item, undefined, seen));
+  }
+  return Object.fromEntries(
+    Object.entries(value).map(([entryKey, entryValue]) => [
+      entryKey,
+      redactDiagnosticValue(entryValue, entryKey, seen),
+    ])
+  );
+}
+
+function getLoginErrorDiagnostics(error, seen = new WeakSet()) {
+  if (!error || typeof error !== 'object') {
+    return { message: redactDiagnosticValue(error) };
+  }
+  if (seen.has(error)) return '[Circular]';
+  seen.add(error);
+
+  const diagnostics = {};
+  for (const key of ['name', 'code', 'message', 'clientVersion']) {
+    if (error[key] !== undefined && error[key] !== null) {
+      diagnostics[key] = redactDiagnosticValue(error[key], key);
+    }
+  }
+  if (error.meta !== undefined && error.meta !== null) {
+    diagnostics.meta = redactDiagnosticValue(error.meta, 'meta');
+  }
+  if (error.cause !== undefined && error.cause !== null) {
+    diagnostics.cause = getLoginErrorDiagnostics(error.cause, seen);
+  }
+  return diagnostics;
+}
+
 export async function POST(request) {
   let body;
   try {
@@ -95,10 +148,7 @@ export async function POST(request) {
     response.cookies.set('edgelink_session', result.token, sessionCookieOptions());
     return response;
   } catch (error) {
-    console.error('Login failed:', {
-      name: error && error.name ? error.name : 'Error',
-      code: error && error.code ? error.code : 'UNKNOWN',
-    });
+    console.error('Login failed:', getLoginErrorDiagnostics(error));
     return NextResponse.json({ error: 'Unable to sign in right now.' }, { status: 500 });
   }
 }
