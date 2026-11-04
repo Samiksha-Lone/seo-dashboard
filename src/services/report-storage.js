@@ -61,6 +61,13 @@ function validateSupabaseObjectPath(key) {
   return key;
 }
 
+function getReportStorageType(key) {
+  if (typeof key !== 'string') return 'unknown';
+  if (/^audits\/[a-zA-Z0-9_-]{1,200}\/report\.pdf$/.test(key)) return 'supabase';
+  if (/^[a-zA-Z0-9_-]{1,200}\.pdf$/.test(key)) return 'local';
+  return 'unknown';
+}
+
 function createSupabaseStorageError(operation, error) {
   if (
     error &&
@@ -280,6 +287,7 @@ module.exports = {
   createSupabaseReportStorage,
   createUnconfiguredReportStorage,
   getReportStorageDirectory,
+  getReportStorageType,
   localReportStorage,
   reportStorage,
 };

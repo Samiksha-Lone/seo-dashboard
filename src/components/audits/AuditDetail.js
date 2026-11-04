@@ -299,7 +299,11 @@ export default function AuditDetail({
           <div>
             <h2 className="text-sm font-semibold text-slate-900">PDF report</h2>
             <p className="mt-1 text-xs text-slate-500">
-              Local demo storage is not durable production object storage.
+              {audit.report?.storage === "supabase"
+                ? "Stored in durable Supabase object storage."
+                : audit.report?.storage === "local"
+                  ? "Local demo storage is not durable production object storage."
+                  : "Storage location is unavailable."}
             </p>
           </div>
           {audit.report && (
@@ -321,7 +325,12 @@ export default function AuditDetail({
           <div className="mt-4 flex flex-col gap-1 text-sm text-slate-600 sm:flex-row sm:justify-between">
             <span className="break-all">{audit.report.fileName}</span>
             <span>
-              Generated {formatAuditDate(audit.report.generatedAt)} · Stored locally
+              Generated {formatAuditDate(audit.report.generatedAt)} ·{" "}
+              {audit.report.storage === "supabase"
+                ? "Stored in Supabase Storage"
+                : audit.report.storage === "local"
+                  ? "Stored locally"
+                  : "Storage location unavailable"}
               {audit.report.notificationAttemptedAt
                 ? ` · Mock notification attempted ${formatAuditDate(audit.report.notificationAttemptedAt)}`
                 : ""}

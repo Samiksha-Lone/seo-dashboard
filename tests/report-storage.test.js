@@ -13,6 +13,7 @@ const {
   createSupabaseReportStorage,
   createDefaultReportStorage,
   getReportStorageDirectory,
+  getReportStorageType,
 } = require('../src/services/report-storage');
 
 test('local report storage writes and reads an opaque PDF key', async (context) => {
@@ -53,6 +54,12 @@ test('storage directory is project-local by default and configurable only by abs
     () => getReportStorageDirectory('relative\\reports', 'D:\\workspace\\seo-dashboard'),
     /must be an absolute path/
   );
+});
+
+test('report storage metadata recognizes the existing Supabase key convention', () => {
+  assert.equal(getReportStorageType('audits/audit_123/report.pdf'), 'supabase');
+  assert.equal(getReportStorageType('audit_123.pdf'), 'local');
+  assert.equal(getReportStorageType('../report.pdf'), 'unknown');
 });
 
 test('Supabase report storage uploads PDFs to a private-bucket object path', async () => {

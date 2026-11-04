@@ -96,6 +96,7 @@ export async function GET(_request, { params }) {
           select: {
             id: true,
             fileName: true,
+            filePath: true,
             generatedAt: true,
             notificationAttemptedAt: true,
           },
@@ -106,6 +107,18 @@ export async function GET(_request, { params }) {
     if (!audit) {
       return NextResponse.json({ error: 'Audit not found.' }, { status: 404 });
     }
+
+    const report = audit.report
+      ? {
+          id: audit.report.id,
+          fileName: audit.report.fileName,
+          generatedAt: audit.report.generatedAt,
+          notificationAttemptedAt: audit.report.notificationAttemptedAt,
+          storage: require('../../../../services/report-storage')
+            .getReportStorageType(audit.report.filePath),
+          downloadUrl: `/api/audits/${encodeURIComponent(audit.id)}/report`,
+        }
+      : null;
 
     return NextResponse.json({
       data: {
@@ -121,13 +134,7 @@ export async function GET(_request, { params }) {
         website: audit.website,
         issues: audit.issues,
         recommendations: audit.recommendations,
-        report: audit.report
-          ? {
-              ...audit.report,
-              storage: 'local',
-              downloadUrl: `/api/audits/${encodeURIComponent(audit.id)}/report`,
-            }
-          : null,
+        report,
       },
     });
   } catch (error) {
