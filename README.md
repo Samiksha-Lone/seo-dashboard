@@ -117,4 +117,4 @@ The application is deployed on Vercel, and its core audit flow has been tested i
 
 **Samiksha Lone**
 
-- Portfolio: [samiksha-lone.vercel.app](https://samiksha-lone.vercel.app?utm_source=chatgpt.com)
+- Portfolio: [samiksha-lone.vercel.app](https://samiksha-lone.vercel.app)

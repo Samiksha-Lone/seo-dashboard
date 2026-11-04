@@ -86,13 +86,8 @@ export default function Sidebar({ mobileOpen, onNavigate }) {
         })}
       </nav>
 
-      <div className="border-t border-slate-100 p-4">
-        <div className="rounded-xl bg-slate-50 p-3">
-          <p className="text-xs font-semibold text-slate-700">SEO workspace</p>
-          <p className="mt-1 text-xs leading-5 text-slate-500">
-            Manage your client profiles and their registered websites.
-          </p>
-        </div>
+      <div className="border-t border-slate-100 px-4 py-3">
+        <p className="text-xs text-slate-400">EDGELINK SEO · Admin workspace</p>
       </div>
     </aside>
   );
