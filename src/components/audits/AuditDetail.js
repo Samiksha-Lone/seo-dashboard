@@ -16,69 +16,111 @@ const scoreLabels = [
   ["schema", "Schema"],
 ];
 const issueGroups = [
-  { severity: "CRITICAL", title: "Critical issues" },
-  { severity: "IMPORTANT", title: "Important issues" },
-  { severity: "QUICK_WIN", title: "Quick wins" },
+  { severity: "CRITICAL", title: "Critical issues", border: "border-l-rose-500", badge: "bg-rose-50 text-rose-700 ring-rose-600/20" },
+  { severity: "IMPORTANT", title: "Important issues", border: "border-l-amber-500", badge: "bg-amber-50 text-amber-700 ring-amber-600/20" },
+  { severity: "QUICK_WIN", title: "Quick wins", border: "border-l-emerald-500", badge: "bg-emerald-50 text-emerald-700 ring-emerald-600/20" },
 ];
+
+const priorityStyles = {
+  CRITICAL: "bg-rose-100 text-rose-800 ring-rose-600/20",
+  HIGH: "bg-rose-50 text-rose-700 ring-rose-600/20",
+  MEDIUM: "bg-amber-50 text-amber-700 ring-amber-600/20",
+  LOW: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
+};
+
+function getScoreColor(score) {
+  if (score == null) return "text-slate-900";
+  if (score >= 80) return "text-emerald-600";
+  if (score >= 50) return "text-amber-600";
+  return "text-rose-600";
+}
 
 function InfoCard({ label, value }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-2 text-sm font-semibold text-slate-900">{value || "—"}</p>
+    <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm transition hover:shadow">
+      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{label}</p>
+      <p className="mt-2 text-sm font-bold text-slate-900">{value || "—"}</p>
     </div>
   );
 }
 
-function IssueCard({ issue }) {
+function IssueCard({ issue, borderStyle, badgeStyle }) {
   return (
-    <article className="rounded-lg border border-slate-200 p-4">
+    <article className={`rounded-xl border border-slate-200/90 bg-white p-5 shadow-sm border-l-4 ${borderStyle}`}>
       <div className="flex flex-wrap items-center gap-2">
-        <h4 className="text-sm font-semibold text-slate-900">{issue.title || issue.category}</h4>
+        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ring-1 ring-inset ${badgeStyle}`}>
+          {issue.severity || "Issue"}
+        </span>
+        <h4 className="text-sm font-bold text-slate-900">{issue.title || issue.category}</h4>
         {issue.category && (
-          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{issue.category}</span>
+          <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">{issue.category}</span>
         )}
       </div>
-      <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">{issue.finding}</p>
-      <p className="mt-3 text-sm leading-6 text-slate-700">
-        <span className="font-semibold text-slate-900">Suggested fix: </span>{issue.fix}
-      </p>
-      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
-        <span>Impact: {issue.estimatedImpact || "—"}</span>
-        <span>Effort: {issue.effort || "—"}</span>
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <div className="rounded-lg bg-slate-50/70 p-3.5">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Finding</p>
+          <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">{issue.finding}</p>
+        </div>
+        <div className="rounded-lg bg-indigo-50/40 p-3.5">
+          <p className="text-xs font-semibold uppercase tracking-wider text-indigo-700">Suggested Fix</p>
+          <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-slate-800 font-medium">{issue.fix}</p>
+        </div>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2 text-xs">
+        <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2.5 py-1 text-slate-700 font-medium">
+          <span className="text-slate-500">Impact:</span> {issue.estimatedImpact || "—"}
+        </span>
+        <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2.5 py-1 text-slate-700 font-medium">
+          <span className="text-slate-500">Effort:</span> {issue.effort || "—"}
+        </span>
       </div>
       {issue.falsifiabilityCheck && (
-        <p className="mt-3 rounded-md bg-slate-50 p-3 text-sm leading-5 text-slate-600">
-          <span className="font-semibold text-slate-800">How to verify: </span>{issue.falsifiabilityCheck}
-        </p>
+        <div className="mt-3.5 rounded-lg border border-slate-200/80 bg-slate-50/80 p-3 text-xs leading-relaxed text-slate-700">
+          <span className="font-bold text-slate-900">Verification check: </span>{issue.falsifiabilityCheck}
+        </div>
       )}
     </article>
   );
 }
 
 function RecommendationCard({ recommendation }) {
+  const priority = recommendation.priority?.toUpperCase();
+  const badgeClass = priorityStyles[priority] || "bg-indigo-50 text-indigo-700 ring-indigo-600/20";
+
   return (
-    <article className="rounded-lg border border-slate-200 p-4">
+    <article className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-sm transition hover:shadow">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700">
+        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ring-1 ring-inset ${badgeClass}`}>
           {recommendation.priority || "Priority unavailable"}
         </span>
         {recommendation.category && (
-          <span className="text-xs font-medium text-slate-500">{recommendation.category}</span>
+          <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+            {recommendation.category}
+          </span>
         )}
       </div>
-      <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">{recommendation.finding}</p>
-      <p className="mt-3 text-sm leading-6 text-slate-700">
-        <span className="font-semibold text-slate-900">Recommended fix: </span>{recommendation.fix}
-      </p>
-      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
-        <span>Impact: {recommendation.estimatedImpact || "—"}</span>
-        <span>Effort: {recommendation.effort || "—"}</span>
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <div className="rounded-lg bg-slate-50/70 p-3.5">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Observation</p>
+          <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">{recommendation.finding}</p>
+        </div>
+        <div className="rounded-lg bg-indigo-50/40 p-3.5">
+          <p className="text-xs font-semibold uppercase tracking-wider text-indigo-700">Recommended Action</p>
+          <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-slate-800 font-medium">{recommendation.fix}</p>
+        </div>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2 text-xs">
+        <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2.5 py-1 text-slate-700 font-medium">
+          <span className="text-slate-500">Impact:</span> {recommendation.estimatedImpact || "—"}
+        </span>
+        <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2.5 py-1 text-slate-700 font-medium">
+          <span className="text-slate-500">Effort:</span> {recommendation.effort || "—"}
+        </span>
       </div>
       {recommendation.falsifiabilityCheck && (
-        <p className="mt-3 rounded-md bg-slate-50 p-3 text-sm leading-5 text-slate-600">
-          <span className="font-semibold text-slate-800">How to verify: </span>{recommendation.falsifiabilityCheck}
-        </p>
+        <div className="mt-3.5 rounded-lg border border-slate-200/80 bg-slate-50/80 p-3 text-xs leading-relaxed text-slate-700">
+          <span className="font-bold text-slate-900">Verification check: </span>{recommendation.falsifiabilityCheck}
+        </div>
       )}
     </article>
   );
@@ -155,7 +197,7 @@ export default function AuditDetail({
   if (loading) {
     return (
       <div role="status" aria-label="Loading audit" className="animate-pulse space-y-5">
-        <div className="h-24 rounded-xl border border-slate-200 bg-white" />
+        <div className="h-32 rounded-xl border border-slate-200 bg-white" />
         <div className="grid gap-4 sm:grid-cols-3">
           {[1, 2, 3].map((item) => <div key={item} className="h-20 rounded-xl border border-slate-200 bg-white" />)}
         </div>
@@ -167,13 +209,13 @@ export default function AuditDetail({
 
   if (error || !audit) {
     return (
-      <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-5 text-rose-900">
-        <h2 className="font-semibold">Audit details are unavailable</h2>
+      <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-rose-900">
+        <h2 className="font-semibold text-base">Audit details are unavailable</h2>
         <p className="mt-1 text-sm text-rose-800">{error || "Audit not found."}</p>
         <button
           type="button"
           onClick={() => setRetry((value) => value + 1)}
-          className="mt-4 rounded-lg bg-white px-3 py-2 text-sm font-medium text-rose-900 ring-1 ring-rose-200 hover:bg-rose-100"
+          className="mt-4 rounded-lg bg-white px-3.5 py-2 text-sm font-semibold text-rose-900 ring-1 ring-rose-200 hover:bg-rose-100"
         >
           Try again
         </button>
@@ -182,25 +224,33 @@ export default function AuditDetail({
   }
 
   const hasScoreBreakdown = scoreLabels.some(([key]) => audit.scoreBreakdown?.[key] != null);
+  const scoreColor = getScoreColor(audit.overallScore);
 
   return (
     <div className="space-y-6">
       <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
         <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-start">
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-3">
-              <h2 className="text-lg font-semibold text-slate-950">{audit.website?.name || "Website unavailable"}</h2>
+              <h2 className="text-xl font-bold tracking-tight text-slate-950 sm:text-2xl">{audit.website?.name || "Website unavailable"}</h2>
               <AuditStatusBadge status={audit.status} />
             </div>
-            <p className="mt-2 break-all text-sm text-slate-600">{audit.website?.url || "Website URL unavailable"}</p>
-            <p className="mt-1 text-sm text-slate-500">
-              Client: {audit.website?.client?.businessName || "—"}
+            <a
+              href={audit.website?.url}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 inline-flex items-center gap-1.5 break-all text-sm font-medium text-indigo-600 hover:text-indigo-800 hover:underline"
+            >
+              {audit.website?.url || "Website URL unavailable"}
+            </a>
+            <p className="mt-1.5 text-xs text-slate-500">
+              Assigned Client: <span className="font-semibold text-slate-700">{audit.website?.client?.businessName || "—"}</span>
             </p>
           </div>
           <div className="flex shrink-0 flex-col items-start gap-4 sm:items-end">
-            <div className="text-left sm:text-right">
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Overall SEO score</p>
-              <p className="mt-1 text-3xl font-semibold tabular-nums text-slate-950">
+            <div className="rounded-xl border border-slate-100 bg-slate-50/80 p-4 text-left sm:text-right sm:min-w-44">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Overall SEO Score</p>
+              <p className={`mt-1 text-4xl font-extrabold tracking-tight tabular-nums ${scoreColor}`}>
                 {audit.overallScore == null ? "—" : audit.overallScore}
                 {audit.overallScore != null && <span className="ml-1 text-sm font-normal text-slate-400">/ 100</span>}
               </p>
@@ -216,40 +266,45 @@ export default function AuditDetail({
           </div>
         </div>
         {activeStatuses.has(audit.status) ? (
-          <p role="status" className="mt-5 border-t border-slate-100 pt-4 text-sm text-slate-600">
-            {auditStatusLabel(audit.status)} — this page refreshes the saved status every 5 seconds.
-          </p>
+          <div role="status" className="mt-5 flex items-center gap-2 border-t border-slate-100 pt-4 text-sm font-medium text-sky-700">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sky-400 opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-sky-500" />
+            </span>
+            <span>{auditStatusLabel(audit.status)} — refreshing every 5 seconds.</span>
+          </div>
         ) : (
-          <p className="mt-5 border-t border-slate-100 pt-4 text-sm text-slate-500">
+          <p className="mt-5 border-t border-slate-100 pt-4 text-xs text-slate-400">
             {lastUpdated ? `Status last checked ${formatAuditDate(lastUpdated, true)}.` : ""}
           </p>
         )}
         {pollError && (
-          <p role="status" className="mt-3 text-sm text-amber-700">{pollError}</p>
+          <p role="status" className="mt-3 text-xs text-amber-700">{pollError}</p>
         )}
       </section>
 
       <section className="grid gap-4 sm:grid-cols-3" aria-label="Audit timestamps">
-        <InfoCard label="Created" value={formatAuditDate(audit.createdAt, true)} />
-        <InfoCard label="Started" value={formatAuditDate(audit.startedAt, true)} />
-        <InfoCard label="Completed" value={formatAuditDate(audit.completedAt, true)} />
+        <InfoCard label="Audit Queued" value={formatAuditDate(audit.createdAt, true)} />
+        <InfoCard label="Crawling Started" value={formatAuditDate(audit.startedAt, true)} />
+        <InfoCard label="Audit Completed" value={formatAuditDate(audit.completedAt, true)} />
       </section>
 
       <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-100 p-5">
+        <div className="border-b border-slate-100 p-5 sm:px-6">
           <h2 className="text-base font-semibold text-slate-900">Score breakdown</h2>
-          <p className="mt-1 text-sm text-slate-500">Scores saved with this audit report.</p>
+          <p className="mt-0.5 text-xs text-slate-500">Individual category scores evaluated during this audit.</p>
         </div>
         {!hasScoreBreakdown ? (
-          <p className="px-5 py-8 text-center text-sm text-slate-500">Score breakdown is not available for this audit.</p>
+          <p className="px-5 py-10 text-center text-sm text-slate-500">Score breakdown is not available for this audit.</p>
         ) : (
-          <div className="grid gap-3 p-5 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="grid gap-3 p-5 sm:grid-cols-2 sm:p-6 lg:grid-cols-5">
             {scoreLabels.map(([key, label]) => {
               const score = audit.scoreBreakdown?.[key];
+              const categoryColor = getScoreColor(score);
               return (
-                <div key={key} className="rounded-lg bg-slate-50 p-4">
-                  <p className="text-xs font-medium text-slate-500">{label}</p>
-                  <p className="mt-2 text-xl font-semibold tabular-nums text-slate-900">
+                <div key={key} className="rounded-xl border border-slate-200/80 bg-slate-50/70 p-4 transition hover:bg-slate-50">
+                  <p className="text-xs font-semibold text-slate-600">{label}</p>
+                  <p className={`mt-2 text-2xl font-bold tabular-nums ${categoryColor}`}>
                     {score == null ? "—" : `${score}`}
                     {score != null && <span className="ml-1 text-xs font-normal text-slate-400">/ 100</span>}
                   </p>
@@ -263,7 +318,7 @@ export default function AuditDetail({
       <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <h2 className="text-base font-semibold text-slate-900">Executive summary</h2>
         {audit.executiveSummary ? (
-          <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-700">{audit.executiveSummary}</p>
+          <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">{audit.executiveSummary}</p>
         ) : (
           <p className="mt-3 text-sm text-slate-500">No executive summary has been saved for this audit.</p>
         )}
@@ -273,31 +328,35 @@ export default function AuditDetail({
         const issues = audit.issues.filter((issue) => issue.severity === group.severity);
         return (
           <section key={group.severity} className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-            <div className="flex items-center justify-between border-b border-slate-100 p-5">
+            <div className="flex items-center justify-between border-b border-slate-100 p-5 sm:px-6">
               <h2 className="text-base font-semibold text-slate-900">{group.title}</h2>
-              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">{issues.length}</span>
+              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{issues.length}</span>
             </div>
             {issues.length === 0 ? (
-              <p className="px-5 py-7 text-sm text-slate-500">No {group.title.toLowerCase()} are saved for this audit.</p>
+              <p className="px-5 py-8 text-sm text-slate-500">No {group.title.toLowerCase()} were identified for this audit.</p>
             ) : (
-              <div className="space-y-3 p-5">{issues.map((issue) => <IssueCard key={issue.id} issue={issue} />)}</div>
+              <div className="space-y-4 p-5 sm:p-6">
+                {issues.map((issue) => (
+                  <IssueCard key={issue.id} issue={issue} borderStyle={group.border} badgeStyle={group.badge} />
+                ))}
+              </div>
             )}
           </section>
         );
       })}
 
       <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex items-center justify-between border-b border-slate-100 p-5">
+        <div className="flex items-center justify-between border-b border-slate-100 p-5 sm:px-6">
           <div>
-            <h2 className="text-base font-semibold text-slate-900">Recommendations</h2>
-            <p className="mt-1 text-sm text-slate-500">Prioritized actions saved with this report.</p>
+            <h2 className="text-base font-semibold text-slate-900">Prioritized recommendations</h2>
+            <p className="mt-0.5 text-xs text-slate-500">Action items sorted by impact and implementation priority.</p>
           </div>
-          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">{audit.recommendations.length}</span>
+          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{audit.recommendations.length}</span>
         </div>
         {audit.recommendations.length === 0 ? (
-          <p className="px-5 py-7 text-sm text-slate-500">No recommendations are saved for this audit.</p>
+          <p className="px-5 py-8 text-sm text-slate-500">No recommendations are saved for this audit.</p>
         ) : (
-          <div className="space-y-3 p-5">
+          <div className="space-y-4 p-5 sm:p-6">
             {audit.recommendations.map((recommendation) => (
               <RecommendationCard key={recommendation.id} recommendation={recommendation} />
             ))}
@@ -305,25 +364,25 @@ export default function AuditDetail({
         )}
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
           <div>
-            <h2 className="text-sm font-semibold text-slate-900">PDF report</h2>
+            <h2 className="text-base font-semibold text-slate-900">PDF Report Document</h2>
             <p className="mt-1 text-xs text-slate-500">
               {audit.report?.storage === "supabase"
-                ? "Stored in durable Supabase object storage."
+                ? "Durable object storage · Supabase Storage"
                 : audit.report?.storage === "local"
-                  ? "Local demo storage is not durable production object storage."
+                  ? "Local storage adapter"
                   : "Storage location is unavailable."}
             </p>
           </div>
           {audit.report && (
-            <div className="flex flex-col items-start gap-3 sm:items-end">
+            <div className="flex flex-wrap items-center gap-3">
               <Link
                 href={`${reportsBase}/${encodeURIComponent(audit.report.id)}`}
-                className="text-sm font-semibold text-indigo-700 hover:text-indigo-900"
+                className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
               >
-                View report details
+                View web report
               </Link>
               <DownloadReportButton
                 downloadUrl={audit.report.downloadUrl}
@@ -333,24 +392,14 @@ export default function AuditDetail({
           )}
         </div>
         {audit.report ? (
-          <div className="mt-4 flex flex-col gap-1 text-sm text-slate-600 sm:flex-row sm:justify-between">
-            <span className="break-all">{audit.report.fileName}</span>
-            <span>
-              Generated {formatAuditDate(audit.report.generatedAt)} ·{" "}
-              {audit.report.storage === "supabase"
-                ? "Stored in Supabase Storage"
-                : audit.report.storage === "local"
-                  ? "Stored locally"
-                  : "Storage location unavailable"}
-              {audit.report.notificationAttemptedAt
-                ? ` · Mock notification attempted ${formatAuditDate(audit.report.notificationAttemptedAt)}`
-                : ""}
-            </span>
+          <div className="mt-4 flex flex-col gap-1 rounded-lg bg-slate-50 p-3.5 text-xs text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+            <span className="font-mono font-medium text-slate-800 break-all">{audit.report.fileName}</span>
+            <span>Generated {formatAuditDate(audit.report.generatedAt)}</span>
           </div>
         ) : (
           <p className="mt-3 text-sm text-slate-500">
             {activeStatuses.has(audit.status)
-              ? "The PDF will be available after the audit report is generated."
+              ? "The PDF report will be automatically compiled once audit crawling and analysis complete."
               : "A PDF report is not available for this audit."}
           </p>
         )}

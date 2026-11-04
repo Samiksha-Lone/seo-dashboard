@@ -13,7 +13,7 @@ export default function DashboardShell({ children }) {
         <button
           type="button"
           aria-label="Close navigation menu"
-          className="fixed inset-0 z-30 bg-slate-950/40 md:hidden"
+          className="fixed inset-0 z-30 bg-slate-950/40 backdrop-blur-sm transition-opacity md:hidden"
           onClick={() => setMobileNavOpen(false)}
         />
       )}
