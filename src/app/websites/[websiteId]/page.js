@@ -7,6 +7,7 @@ import WebsiteDialogButton from "@/components/management/WebsiteDialogButton";
 import ManagementError from "@/components/management/ManagementError";
 import { formatManagementDate } from "@/lib/management/format";
 import { prisma } from "@/lib/prisma";
+import { runDatabaseOperation } from "@/lib/prisma-diagnostics";
 import { requirePageRole } from "@/services/auth";
 
 export const metadata = {
@@ -22,42 +23,46 @@ export default async function WebsiteDetailPage({ params }) {
   let clients;
   try {
     [website, clients] = await Promise.all([
-      prisma.website.findUnique({
-      where: { id: params.websiteId },
-      select: {
-        id: true,
-        name: true,
-        url: true,
-        clientId: true,
-        createdAt: true,
-        client: {
+      runDatabaseOperation("websiteDetail.website.findUnique", () =>
+        prisma.website.findUnique({
+          where: { id: params.websiteId },
           select: {
             id: true,
-            businessName: true,
-            businessType: true,
-            city: true,
-            state: true,
-            phone: true,
-          },
-        },
-        audits: {
-          take: 25,
-          orderBy: { createdAt: "desc" },
-          select: {
-            id: true,
-            status: true,
-            overallScore: true,
+            name: true,
+            url: true,
+            clientId: true,
             createdAt: true,
-            completedAt: true,
+            client: {
+              select: {
+                id: true,
+                businessName: true,
+                businessType: true,
+                city: true,
+                state: true,
+                phone: true,
+              },
+            },
+            audits: {
+              take: 25,
+              orderBy: { createdAt: "desc" },
+              select: {
+                id: true,
+                status: true,
+                overallScore: true,
+                createdAt: true,
+                completedAt: true,
+              },
+            },
+            _count: { select: { audits: true } },
           },
-        },
-        _count: { select: { audits: true } },
-      },
-      }),
-      prisma.client.findMany({
-        orderBy: { businessName: "asc" },
-        select: { id: true, businessName: true, city: true, state: true },
-      }),
+        })
+      ),
+      runDatabaseOperation("websiteDetail.client.findMany", () =>
+        prisma.client.findMany({
+          orderBy: { businessName: "asc" },
+          select: { id: true, businessName: true, city: true, state: true },
+        })
+      ),
     ]);
   } catch (error) {
     console.error("Website detail query failed:", {

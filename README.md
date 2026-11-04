@@ -10,7 +10,7 @@ A dashboard for managing clients and websites, running SEO audits, reviewing rep
 - Login rate limiting and database-backed sessions.
 - Monthly audit scheduling endpoint.
 
-An admin queues an audit from a registered website. The API stores or reuses its audit record and queues a job in Redis. A separate worker crawls the site, runs SEO checks, saves results in PostgreSQL, generates a PDF, and records mock notification outcomes.
+An admin queues an audit from a registered website. The API stores or reuses its audit record and queues a job in Redis. A BullMQ worker crawls the site, runs SEO checks, saves results in PostgreSQL, generates a PDF, and records mock notification outcomes. Locally, run the worker with `npm run worker`; in production, cron-job.org invokes a Vercel route that runs a short-lived worker.
 
 ## Technology
 
@@ -68,10 +68,10 @@ See [`.env.example`](./.env.example) for all settings and safe example values.
 
 - Required: `DATABASE_URL`, `REDIS_URL`.
 - Optional: `LOGIN_RATE_LIMIT_MAX_ATTEMPTS`, `LOGIN_RATE_LIMIT_WINDOW_SECONDS`, `TRUSTED_PROXY_IP_HEADER`, and `REPORT_STORAGE_DIR` (local storage only).
-- Production PDF storage requires `SUPABASE_URL` and the server-side `SUPABASE_SECRET_KEY` (`sb_secret_...`) on both Vercel and Render.
+- Production PDF storage requires `SUPABASE_URL` and the server-side `SUPABASE_SECRET_KEY` (`sb_secret_...`) on Vercel.
 - `USE_MOCKS` is set to `true` in `.env.example`; set it to `false` to use real Claude analysis.
 - `ANTHROPIC_API_KEY` is needed only when `USE_MOCKS=false`.
-- `CRON_SECRET` is needed only when using the monthly audit endpoint.
+- `CRON_SECRET` is needed when using either cron endpoint.
 - `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD` are only for initial administrator setup; `INITIAL_ADMIN_NAME` is optional.
 
 Do not commit `.env` or real credentials.
@@ -90,18 +90,30 @@ npm run worker
 
 Open `http://localhost:3000`. Sign in at `/login`.
 
-For a production build, run `npm run build` and then `npm run start`; keep the worker running separately.
-For deployment, run the Next.js application and a persistent BullMQ worker, both with access to the same PostgreSQL database and Redis instance. The monthly scheduling endpoint also needs an external scheduler.
+For a production build, run `npm run build` and then `npm run start`. The local BullMQ worker can be started separately with `npm run worker`.
+
+In production, deploy the Next.js application to Vercel and configure cron-job.org to invoke the audit-processing endpoint every minute. Each invocation uses a short-lived BullMQ worker to process at most one job; no persistent worker process is required. The Vercel function is configured for a maximum duration of 60 seconds.
+
+## Audit processing
+
+Configure a cron-job.org job with:
+
+- URL: `https://<your-vercel-domain>/api/cron/process-audit`
+- Method: `GET`
+- Schedule: every minute
+- Custom request header: `Authorization: Bearer <CRON_SECRET>`
+
+Set `CRON_SECRET` in Vercel environment variables and enter the same value in cron-job.org's header configuration. Do not put the secret in the URL or source code. The function requires the existing `REDIS_URL` and `DATABASE_URL` settings. It processes no more than one waiting job per invocation and returns quickly when the queue is empty.
 
 ## Monthly scheduling
 
-`POST /api/cron/monthly-audits` schedules audits for websites without an audit in the current UTC month. It requires `Authorization: Bearer <CRON_SECRET>`. Configure an external scheduler if needed; the project does not provision one. A running worker is still required to process queued jobs.
+`POST /api/cron/monthly-audits` schedules audits for websites without an audit in the current UTC month. It requires `Authorization: Bearer <CRON_SECRET>`. Configure a separate cron-job.org schedule if monthly scheduling is needed; audit processing is handled by the audit-processing cron endpoint above.
 
 ## Integrations and storage
 
 PageSpeed, Google Search Console, DataForSEO, WhatsApp, and email integrations are mocks. WhatsApp and email do not send messages. Website crawling makes requests to registered sites. With `USE_MOCKS=true` as configured in `.env.example`, Claude uses a mock; set it to `false` to use the Anthropic API.
 
-PDFs use local `.local-reports` storage in development and tests. Production uses the private Supabase Storage bucket `seo-reports`; the worker uploads PDFs, and the authenticated application issues a short-lived signed download URL after checking report ownership. Create the private bucket in Supabase before deployment and configure `SUPABASE_URL` and `SUPABASE_SECRET_KEY` as server-only variables on both Vercel and Render. Never expose the secret key with a `NEXT_PUBLIC_` prefix.
+PDFs use local `.local-reports` storage in development and tests. Production uses the private Supabase Storage bucket `seo-reports`; the audit processor uploads PDFs, and the authenticated application issues a short-lived signed download URL after checking report ownership. Create the private bucket in Supabase before deployment and configure `SUPABASE_URL` and `SUPABASE_SECRET_KEY` as server-only variables on Vercel. Never expose the secret key with a `NEXT_PUBLIC_` prefix.
 
 ## Tests and checks
 

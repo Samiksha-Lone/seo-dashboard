@@ -1,5 +1,3 @@
-const puppeteer = require('puppeteer');
-
 const CATEGORY_LABELS = {
   technical: 'Technical',
   on_page: 'On-page',
@@ -177,10 +175,14 @@ function createReportHtml({ audit, report, signals, mockMode = false }) {
 </html>`;
 }
 
-async function generatePdfBuffer(reportData, puppeteerInstance = puppeteer) {
+async function generatePdfBuffer(reportData, puppeteerInstance) {
   let browser;
   try {
-    browser = await puppeteerInstance.launch({ headless: true });
+    const puppeteerModule = puppeteerInstance
+      ? null
+      : await import('puppeteer');
+    const puppeteer = puppeteerInstance || puppeteerModule.default || puppeteerModule;
+    browser = await puppeteer.launch({ headless: true });
     const page = await browser.newPage();
     await page.setContent(createReportHtml(reportData), { waitUntil: 'load' });
     const pdf = await page.pdf({

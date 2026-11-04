@@ -5,6 +5,7 @@ import StatCard from '@/components/dashboard/StatCard';
 import PortalShell from '@/components/layout/PortalShell';
 import { requirePortalPage } from '@/services/auth';
 import { prisma } from '@/lib/prisma';
+import { runDatabaseOperation } from '@/lib/prisma-diagnostics';
 
 export const metadata = {
   title: 'Client Overview',
@@ -160,54 +161,62 @@ export default async function PortalHomePage() {
   let recentAudits;
   try {
     [client, completedAudits, reportCount, recentAudits] = await Promise.all([
-      prisma.client.findUnique({
-        where: { id: session.user.clientId },
-        select: {
-          id: true,
-          businessName: true,
-          businessType: true,
-          city: true,
-          state: true,
-          websites: {
-            orderBy: { name: 'asc' },
-            select: {
-              id: true,
-              name: true,
-              url: true,
-              audits: {
-                take: 1,
-                orderBy: { createdAt: 'desc' },
-                select: {
-                  id: true,
-                  status: true,
-                  overallScore: true,
-                  createdAt: true,
-                  report: { select: { id: true } },
+      runDatabaseOperation('portal.client.findUnique', () =>
+        prisma.client.findUnique({
+          where: { id: session.user.clientId },
+          select: {
+            id: true,
+            businessName: true,
+            businessType: true,
+            city: true,
+            state: true,
+            websites: {
+              orderBy: { name: 'asc' },
+              select: {
+                id: true,
+                name: true,
+                url: true,
+                audits: {
+                  take: 1,
+                  orderBy: { createdAt: 'desc' },
+                  select: {
+                    id: true,
+                    status: true,
+                    overallScore: true,
+                    createdAt: true,
+                    report: { select: { id: true } },
+                  },
                 },
               },
             },
           },
-        },
-      }),
-      prisma.audit.count({
-        where: { status: 'COMPLETED', website: { clientId: session.user.clientId } },
-      }),
-      prisma.report.count({
-        where: { audit: { website: { clientId: session.user.clientId } } },
-      }),
-      prisma.audit.findMany({
-        where: { website: { clientId: session.user.clientId } },
-        take: 8,
-        orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          status: true,
-          overallScore: true,
-          createdAt: true,
-          report: { select: { id: true } },
-          website: { select: { name: true, url: true } },
-        },
-      }),
+        })
+      ),
+      runDatabaseOperation('portal.completedAudit.count', () =>
+        prisma.audit.count({
+          where: { status: 'COMPLETED', website: { clientId: session.user.clientId } },
+        })
+      ),
+      runDatabaseOperation('portal.report.count', () =>
+        prisma.report.count({
+          where: { audit: { website: { clientId: session.user.clientId } } },
+        })
+      ),
+      runDatabaseOperation('portal.recentAudit.findMany', () =>
+        prisma.audit.findMany({
+          where: { website: { clientId: session.user.clientId } },
+          take: 8,
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true,
+            status: true,
+            overallScore: true,
+            createdAt: true,
+            report: { select: { id: true } },
+            website: { select: { name: true, url: true } },
+          },
+        })
+      ),
     ]);
   } catch (error) {
     console.error('Client portal page query failed:', {
