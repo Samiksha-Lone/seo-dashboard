@@ -1,3 +1,6 @@
+const { existsSync } = require('node:fs');
+const path = require('node:path');
+
 const CATEGORY_LABELS = {
   technical: 'Technical',
   on_page: 'On-page',
@@ -101,6 +104,24 @@ function renderSignalAvailability(signals, mockMode) {
   return `<p>${summary}</p>${modeNotice}`;
 }
 
+function getLocalChromePath() {
+  if (process.env.CHROME_EXECUTABLE_PATH) {
+    return process.env.CHROME_EXECUTABLE_PATH;
+  }
+
+  const candidates = process.platform === 'win32'
+    ? [
+        path.join(process.env.PROGRAMFILES || 'C:\\Program Files', 'Google', 'Chrome', 'Application', 'chrome.exe'),
+        path.join(process.env['PROGRAMFILES(X86)'] || 'C:\\Program Files (x86)', 'Google', 'Chrome', 'Application', 'chrome.exe'),
+        path.join(process.env.LOCALAPPDATA || '', 'Google', 'Chrome', 'Application', 'chrome.exe'),
+      ]
+    : process.platform === 'darwin'
+      ? ['/Applications/Google Chrome.app/Contents/MacOS/Google Chrome']
+      : ['/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser'];
+
+  return candidates.find((candidate) => existsSync(candidate));
+}
+
 function createReportHtml({ audit, report, signals, mockMode = false }) {
   const categories = report && report.score_breakdown;
   const critical = report && report.critical_issues;
@@ -178,11 +199,30 @@ function createReportHtml({ audit, report, signals, mockMode = false }) {
 async function generatePdfBuffer(reportData, puppeteerInstance) {
   let browser;
   try {
-    const puppeteerModule = puppeteerInstance
-      ? null
-      : await import('puppeteer');
-    const puppeteer = puppeteerInstance || puppeteerModule.default || puppeteerModule;
-    browser = await puppeteer.launch({ headless: true });
+    let puppeteer = puppeteerInstance;
+    let launchOptions = { headless: true };
+
+    if (!puppeteer && process.env.VERCEL) {
+      const [puppeteerModule, chromiumModule] = await Promise.all([
+        import('puppeteer-core'),
+        import('@sparticuz/chromium'),
+      ]);
+      const chromium = chromiumModule.default;
+      puppeteer = puppeteerModule.default;
+      launchOptions = {
+        args: chromium.args,
+        defaultViewport: chromium.defaultViewport,
+        executablePath: await chromium.executablePath(),
+        headless: chromium.headless,
+      };
+    } else if (!puppeteer) {
+      const puppeteerModule = await import('puppeteer-core');
+      puppeteer = puppeteerModule.default;
+      const executablePath = getLocalChromePath();
+      if (executablePath) launchOptions.executablePath = executablePath;
+    }
+
+    browser = await puppeteer.launch(launchOptions);
     const page = await browser.newPage();
     await page.setContent(createReportHtml(reportData), { waitUntil: 'load' });
     const pdf = await page.pdf({
