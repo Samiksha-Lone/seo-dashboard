@@ -1,4 +1,5 @@
 const { PrismaClient } = require('../src/generated/prisma/client.ts');
+const { PrismaPg } = require('@prisma/adapter-pg');
 const { hashPassword, validateEmail, validatePassword } = require('../src/services/auth');
 
 async function main() {
@@ -12,7 +13,9 @@ async function main() {
   const passwordError = validatePassword(password);
   if (passwordError) throw new Error(passwordError);
 
-  const prisma = new PrismaClient();
+  const prisma = new PrismaClient({
+    adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+  });
   try {
     const existingAdmin = await prisma.user.findFirst({
       where: { role: 'ADMIN' },
