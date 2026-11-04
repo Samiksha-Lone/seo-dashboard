@@ -53,7 +53,12 @@ async function getAuditReportDownload(
       where,
       select: {
         createdAt: true,
-        website: { select: { name: true } },
+        website: {
+          select: {
+            name: true,
+            client: { select: { businessName: true } },
+          },
+        },
         report: {
           select: { filePath: true },
         },
@@ -72,7 +77,11 @@ async function getAuditReportDownload(
   }
 
   try {
-    const fileName = createDownloadFileName(audit.website && audit.website.name, audit.createdAt);
+    const businessName = audit.website && audit.website.client && audit.website.client.businessName;
+    const fileName = createDownloadFileName(
+      businessName || (audit.website && audit.website.name),
+      audit.createdAt
+    );
     if (typeof storage.createSignedDownloadUrl === 'function') {
       const signedUrl = await storage.createSignedDownloadUrl(audit.report.filePath, fileName);
       return {

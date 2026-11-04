@@ -19,7 +19,10 @@ function fakePrisma(report) {
           ? null
           : {
             createdAt: new Date('2026-11-03T08:30:00.000Z'),
-            website: { name: 'Example Website' },
+            website: {
+              name: 'Example Website',
+              client: { businessName: 'TechNova Solutions' },
+            },
             report,
           };
       },
@@ -41,7 +44,7 @@ test('download returns a PDF with safe attachment headers', async () => {
   assert.equal(result.status, 200);
   assert.equal(result.body, pdf);
   assert.equal(result.headers['Content-Type'], 'application/pdf');
-  assert.equal(result.headers['Content-Disposition'], 'attachment; filename="SEO-Audit-Example-Website-2026-11-03.pdf"');
+  assert.equal(result.headers['Content-Disposition'], 'attachment; filename="SEO-Audit-TechNova-Solutions-2026-11-03.pdf"');
   assert.equal(result.headers['X-Content-Type-Options'], 'nosniff');
 });
 
@@ -66,7 +69,7 @@ test('Supabase download redirects to a signed URL with the readable filename', a
   assert.equal(result.headers['Cache-Control'], 'private, no-store');
   assert.deepEqual(signedUrlArguments, [
     'audits/audit_123/report.pdf',
-    'SEO-Audit-Example-Website-2026-11-03.pdf',
+    'SEO-Audit-TechNova-Solutions-2026-11-03.pdf',
   ]);
 });
 
@@ -232,7 +235,7 @@ test('generated PDF downloads through the same local storage adapter', async (co
 
   assert.equal(result.status, 200);
   assert.equal(result.headers['Content-Type'], 'application/pdf');
-  assert.equal(result.headers['Content-Disposition'], 'attachment; filename="SEO-Audit-Example-Website-2026-11-03.pdf"');
+  assert.equal(result.headers['Content-Disposition'], 'attachment; filename="SEO-Audit-TechNova-Solutions-2026-11-03.pdf"');
   assert.equal(result.body.subarray(0, 4).toString(), '%PDF');
   assert.ok(result.body.includes(Buffer.from('%%EOF')));
 });
