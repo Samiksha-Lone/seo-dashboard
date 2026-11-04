@@ -44,7 +44,7 @@ test('download returns a PDF with safe attachment headers', async () => {
   assert.equal(result.status, 200);
   assert.equal(result.body, pdf);
   assert.equal(result.headers['Content-Type'], 'application/pdf');
-  assert.equal(result.headers['Content-Disposition'], 'attachment; filename="SEO-Audit-TechNova-Solutions-2026-11-03.pdf"');
+  assert.equal(result.headers['Content-Disposition'], 'attachment; filename="seo-audit-technova-solutions.pdf"');
   assert.equal(result.headers['X-Content-Type-Options'], 'nosniff');
 });
 
@@ -69,26 +69,26 @@ test('Supabase download redirects to a signed URL with the readable filename', a
   assert.equal(result.headers['Cache-Control'], 'private, no-store');
   assert.deepEqual(signedUrlArguments, [
     'audits/audit_123/report.pdf',
-    'SEO-Audit-TechNova-Solutions-2026-11-03.pdf',
+    'seo-audit-technova-solutions.pdf',
   ]);
 });
 
-test('download filename sanitizes website names and uses a safe fallback', () => {
+test('download filename sanitizes the client business name for cross-browser use', () => {
   assert.equal(
-    createDownloadFileName('Samiksha Portfolio', new Date('2026-11-03T00:00:00.000Z')),
-    'SEO-Audit-Samiksha-Portfolio-2026-11-03.pdf'
+    createDownloadFileName('GreenLeaf IT Consulting'),
+    'seo-audit-greenleaf-it-consulting.pdf'
   );
   assert.equal(
-    createDownloadFileName('Example / Website: SEO!!!', new Date('2026-11-03T23:59:00.000Z')),
-    'SEO-Audit-Example-Website-SEO-2026-11-03.pdf'
+    createDownloadFileName('Example / Website: SEO!!!'),
+    'seo-audit-example-website-seo.pdf'
   );
   assert.equal(
-    createDownloadFileName(undefined, new Date('2026-11-03T00:00:00.000Z')),
-    'SEO-Audit-Report-2026-11-03.pdf'
+    createDownloadFileName(undefined),
+    'seo-audit-report.pdf'
   );
   assert.equal(
-    createDownloadFileName('A'.repeat(100), new Date('invalid')),
-    `SEO-Audit-${'A'.repeat(60)}-unknown-date.pdf`
+    createDownloadFileName('A'.repeat(100)),
+    `seo-audit-${'a'.repeat(60)}.pdf`
   );
 });
 
@@ -235,7 +235,7 @@ test('generated PDF downloads through the same local storage adapter', async (co
 
   assert.equal(result.status, 200);
   assert.equal(result.headers['Content-Type'], 'application/pdf');
-  assert.equal(result.headers['Content-Disposition'], 'attachment; filename="SEO-Audit-TechNova-Solutions-2026-11-03.pdf"');
+  assert.equal(result.headers['Content-Disposition'], 'attachment; filename="seo-audit-technova-solutions.pdf"');
   assert.equal(result.body.subarray(0, 4).toString(), '%PDF');
   assert.ok(result.body.includes(Buffer.from('%%EOF')));
 });

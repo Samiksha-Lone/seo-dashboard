@@ -12,12 +12,9 @@ function errorResponse(status, message) {
   return { status, body: { error: message } };
 }
 
-function createDownloadFileName(websiteName, auditDate) {
-  const date = auditDate instanceof Date && !Number.isNaN(auditDate.getTime())
-    ? auditDate.toISOString().slice(0, 10)
-    : 'unknown-date';
-  const safeWebsiteName = typeof websiteName === 'string'
-    ? websiteName
+function createDownloadFileName(businessName) {
+  const safeBusinessName = typeof businessName === 'string'
+    ? businessName
       .normalize('NFKD')
       .replace(/[\u0300-\u036f]/g, '')
       .replace(/[^a-zA-Z0-9]+/g, '-')
@@ -27,7 +24,7 @@ function createDownloadFileName(websiteName, auditDate) {
       .replace(/-+$/g, '')
     : '';
 
-  return `SEO-Audit-${safeWebsiteName || 'Report'}-${date}.pdf`;
+  return `seo-audit-${(safeBusinessName || 'report').toLowerCase()}.pdf`;
 }
 
 async function getAuditReportDownload(
@@ -79,8 +76,7 @@ async function getAuditReportDownload(
   try {
     const businessName = audit.website && audit.website.client && audit.website.client.businessName;
     const fileName = createDownloadFileName(
-      businessName || (audit.website && audit.website.name),
-      audit.createdAt
+      businessName || (audit.website && audit.website.name)
     );
     if (typeof storage.createSignedDownloadUrl === 'function') {
       const signedUrl = await storage.createSignedDownloadUrl(audit.report.filePath, fileName);
