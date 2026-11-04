@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import AuditStatusBadge from "@/components/dashboard/AuditStatusBadge";
 import DownloadReportButton from "@/components/audits/DownloadReportButton";
+import DeleteRecordButton from "@/components/management/DeleteRecordButton";
 import { auditStatusLabel, formatAuditDate } from "@/components/audits/format";
 
 const activeStatuses = new Set(["QUEUED", "PROCESSING"]);
@@ -196,12 +197,22 @@ export default function AuditDetail({
               Client: {audit.website?.client?.businessName || "—"}
             </p>
           </div>
-          <div className="shrink-0 text-left sm:text-right">
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Overall SEO score</p>
-            <p className="mt-1 text-3xl font-semibold tabular-nums text-slate-950">
-              {audit.overallScore == null ? "—" : audit.overallScore}
-              {audit.overallScore != null && <span className="ml-1 text-sm font-normal text-slate-400">/ 100</span>}
-            </p>
+          <div className="flex shrink-0 flex-col items-start gap-4 sm:items-end">
+            <div className="text-left sm:text-right">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Overall SEO score</p>
+              <p className="mt-1 text-3xl font-semibold tabular-nums text-slate-950">
+                {audit.overallScore == null ? "—" : audit.overallScore}
+                {audit.overallScore != null && <span className="ml-1 text-sm font-normal text-slate-400">/ 100</span>}
+              </p>
+            </div>
+            {!activeStatuses.has(audit.status) && (
+              <DeleteRecordButton
+                resource="audits"
+                recordId={audit.id}
+                label={`${audit.website?.name || "website"} audit from ${formatAuditDate(audit.createdAt)}`}
+                listHref="/audits"
+              />
+            )}
           </div>
         </div>
         {activeStatuses.has(audit.status) ? (

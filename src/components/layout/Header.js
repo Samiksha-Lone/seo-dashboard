@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import LogoutButton from "@/components/auth/LogoutButton";
+import { Button } from "@/components/ui/button";
 
 export default function Header({ onMenuClick }) {
   const pathname = usePathname();
@@ -28,17 +29,19 @@ export default function Header({ onMenuClick }) {
   return (
     <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur sm:px-6 lg:px-10">
       <div className="flex items-center gap-3">
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="icon"
           onClick={onMenuClick}
           aria-label="Open navigation menu"
           aria-controls="dashboard-sidebar"
-          className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 md:hidden"
+          className="md:hidden"
         >
           <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5">
             <path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" />
           </svg>
-        </button>
+        </Button>
         <div>
           <p className="text-sm font-semibold text-slate-900">{section}</p>
           <p className="hidden text-xs text-slate-500 sm:block">

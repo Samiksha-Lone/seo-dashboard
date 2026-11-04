@@ -164,28 +164,20 @@ export async function DELETE(request, { params }) {
   const auth = await authorizeApi(request, prisma, { roles: ["ADMIN"] });
   if (auth.response) return auth.response;
   try {
-    const result = await prisma.website.deleteMany({
-      where: {
-        id: params.websiteId,
-        audits: { none: {} },
-      },
-    });
-    if (result.count === 1) {
-      return NextResponse.json({ data: { id: params.websiteId, deleted: true } });
-    }
-
-    const website = await prisma.website.findUnique({
-      where: { id: params.websiteId },
-      select: { id: true },
-    });
-    if (!website) {
-      return NextResponse.json({ error: "Website not found." }, { status: 404 });
-    }
-    return NextResponse.json(
-      { error: "This website has audit history and cannot be deleted." },
-      { status: 409 }
-    );
+    const { deleteWebsite } = require("../../../../services/record-deletion");
+    const { reportStorage } = require("../../../../services/report-storage");
+    const data = await deleteWebsite(prisma, params.websiteId, { storage: reportStorage });
+    return NextResponse.json({ data: { ...data, deleted: true } });
   } catch (error) {
+    if (error?.statusCode) {
+      return NextResponse.json({ error: error.message }, { status: error.statusCode });
+    }
+    if (error?.code === "P2034") {
+      return NextResponse.json(
+        { error: "The website changed while deletion was in progress. Refresh and try again." },
+        { status: 409 }
+      );
+    }
     logFailure("delete", error);
     return NextResponse.json(
       { error: "Unable to delete the website right now." },

@@ -27,6 +27,9 @@ test('local report storage writes and reads an opaque PDF key', async (context) 
   assert.deepEqual(stored, { key: 'audit_123.pdf' });
   assert.equal(storage.getReportKeyForAudit('audit_123'), 'audit_123.pdf');
   assert.deepEqual(await storage.readReport(stored.key), content);
+  await storage.deleteReport(stored.key);
+  await assert.rejects(storage.readReport(stored.key), { code: 'ENOENT' });
+  await storage.deleteReport(stored.key);
 });
 
 test('local report storage rejects traversal keys', async () => {
@@ -75,6 +78,7 @@ test('Supabase report storage uploads PDFs to a private-bucket object path', asy
         detectSessionInUrl: false,
         persistSession: false,
       });
+
       return {
         storage: {
           async getBucket(bucket) {
@@ -111,6 +115,31 @@ test('Supabase report storage uploads PDFs to a private-bucket object path', asy
     pdf,
     { cacheControl: '3600', contentType: 'application/pdf', upsert: true },
   ]]);
+});
+
+test('Supabase report storage removes only validated report object paths', async () => {
+  const removed = [];
+  const storage = createSupabaseReportStorage({
+    supabaseUrl: 'https://project.supabase.co',
+    secretKey: 'sb_secret_test-only-not-real',
+    createClient: () => ({
+      storage: {
+        from(bucket) {
+          assert.equal(bucket, REPORT_BUCKET);
+          return {
+            async remove(paths) {
+              removed.push(paths);
+              return { data: paths, error: null };
+            },
+          };
+        },
+      },
+    }),
+  });
+
+  await storage.deleteReport('audits/audit_123/report.pdf');
+  await assert.rejects(storage.deleteReport('../report.pdf'), InvalidReportKeyError);
+  assert.deepEqual(removed, [['audits/audit_123/report.pdf']]);
 });
 
 test('Supabase upload failures are reported without exposing provider messages', async () => {

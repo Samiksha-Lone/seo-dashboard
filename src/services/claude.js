@@ -451,9 +451,14 @@ function collectMockIssues(signals) {
     const text = finding.finding.toLowerCase();
     const isQuickWin =
       text.includes('image') && text.includes('alt');
+    const category = /content|body text|word count|visible text|heading/.test(text)
+      ? 'Content'
+      : /canonical/.test(text)
+        ? 'OnPage'
+        : 'OnPage';
 
     issues.push(createMockIssue({
-      category: 'OnPage',
+      category,
       title: finding.finding,
       finding: finding.finding,
       fix: finding.suggestedFix,
@@ -664,6 +669,41 @@ function calculateOnPageScore(signals) {
   return titleScore + descriptionScore + h1Score + imageScore;
 }
 
+function calculateContentScore(signals) {
+  const onPage = getSuccessfulSignal(signals, 'onPage');
+  const content = onPage && onPage.checks && onPage.checks.content;
+
+  if (!content || !Number.isInteger(content.wordCount) || content.wordCount < 0) {
+    return null;
+  }
+
+  if (content.empty) {
+    return 0;
+  }
+
+  const structureBonus = Number(content.headingCount > 0) * 15 + Number(content.paragraphCount > 0) * 10;
+  let score = 45;
+
+  if (content.wordCount >= 1200) {
+    score = 100;
+  } else if (content.wordCount >= 600) {
+    score = 85;
+  } else if (content.wordCount >= 300) {
+    score = 70;
+  } else if (content.wordCount >= 120) {
+    score = 55;
+  } else if (content.wordCount > 0) {
+    score = 30;
+  }
+
+  score += structureBonus;
+  if (content.thin) {
+    score = Math.min(score, 45);
+  }
+
+  return Math.max(0, Math.min(100, Math.round(score)));
+}
+
 function calculateSchemaScore(signals) {
   const schema = getSuccessfulSignal(signals, 'schema');
 
@@ -742,7 +782,7 @@ function scoreBreakdownFromSignals(signals) {
   const calculatedScores = {
     technical: calculateTechnicalScore(signals),
     on_page: calculateOnPageScore(signals),
-    content: null,
+    content: calculateContentScore(signals),
     core_web_vitals: calculateCoreWebVitalsScore(signals),
     schema: calculateSchemaScore(signals),
   };

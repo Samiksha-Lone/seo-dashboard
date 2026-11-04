@@ -1,125 +1,120 @@
-# EDGELINK SEO Automation Dashboard
+# SEO Automation Dashboard
 
-A dashboard for managing clients and websites, running SEO audits, reviewing reports, and downloading audit PDFs.
+## Overview
 
-## Features
+A dashboard for managing clients and websites, running SEO audits, and reviewing scores, findings, recommendations, and PDF reports. Admins manage audits; client users can view their own results.
 
-- Admin and client portals with role- and ownership-scoped access.
-- Client and website management.
-- Background SEO audits with scores, findings, recommendations, and PDF reports.
-- Login rate limiting and database-backed sessions.
-- Monthly audit scheduling endpoint.
+## Live Demo
 
-An admin queues an audit from a registered website. The API stores or reuses its audit record and queues a job in Redis. A BullMQ worker crawls the site, runs SEO checks, saves results in PostgreSQL, generates a PDF, and records mock notification outcomes. Locally, run the worker with `npm run worker`; in production, cron-job.org invokes a Vercel route that runs a short-lived worker.
+[https://seo-dashboard-flame-five.vercel.app/](https://seo-dashboard-flame-five.vercel.app/)
 
-## Technology
+## Architecture / Audit Flow
 
-- Next.js 14 App Router and React 18
-- Node.js 22.12 or newer
-- Tailwind CSS
-- PostgreSQL with Prisma
-- Redis with BullMQ
-- Fetch and Cheerio for website crawling
-- Anthropic Claude Sonnet 4.6 for report analysis
-- Puppeteer for PDF generation
+```mermaid
+flowchart LR
+  UI[Dashboard / API] --> DB[(PostgreSQL / Prisma)]
+  UI --> Q[Redis + BullMQ]
+  Q --> W[Audit Worker]
+  W --> C[SEO Crawlers & Analyzers]
+  C --> A[Claude / Mock Report]
+  A --> DB
+  A --> PDF[PDF Report]
+```
 
-## Prerequisites
+Audit lifecycle: `QUEUED → PROCESSING → COMPLETED / FAILED`.
 
-Install Node.js 22.12 or newer and npm. Provide a PostgreSQL database and Redis instance accessible by both the web app and worker.
+## Tech Stack
 
-## Setup
+- Next.js 14 App Router and Node.js
+- Tailwind CSS and shadcn/ui-inspired Button and Card primitives
+- Prisma and PostgreSQL
+- Redis-compatible connection and BullMQ (`seo-audit-jobs`)
+- Fetch and Cheerio
+- Anthropic Claude API with a `USE_MOCKS` report path
+- Puppeteer PDF generation
+
+## Key Features
+
+- Client and website management, admin/client portals, and audit history.
+- SEO checks for titles, descriptions, headings, canonicals, image alt text, links, robots.txt, sitemaps, and basic JSON-LD/Schema.org validity.
+- Lightweight content checks based on approximate visible text word count and paragraph/heading structure; identifies thin or nearly empty pages.
+- PageSpeed, Google Search Console, and DataForSEO signals; Claude or mock report generation.
+- Persisted audit scores, issues, recommendations, and downloadable PDF reports.
+
+## Project Structure
+
+- `src/app` — pages and API routes
+- `src/services` — audit and report logic
+- `src/crawlers` / `src/analyzers` — data collection and SEO analysis
+- `src/queues` / `src/workers` — background audit processing
+- `src/mocks` — mock provider data and notifications
+- `prisma` — schema and migrations
+- `tests` — automated tests
+
+## Local Setup
+
+Requires Node.js 20.6 or newer, PostgreSQL, and Redis.
 
 ```bash
+git clone https://github.com/Samiksha-Lone/seo-dashboard.git
+cd seo-dashboard
 npm ci
-```
-
-Copy `.env.example` to `.env` and set `DATABASE_URL` and `REDIS_URL`. Keep `USE_MOCKS=true` for local development; replace the example values with your own configuration.
-
-PowerShell:
-
-```powershell
-Copy-Item .env.example .env
-```
-
-macOS/Linux:
-
-```bash
 cp .env.example .env
 ```
 
-Apply database migrations and generate Prisma Client:
+Set `DATABASE_URL` and `REDIS_URL` in `.env`, then run:
 
 ```bash
 npx prisma migrate deploy
 npm run db:generate
-```
-
-To create the first administrator, set `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD` in `.env`, then run:
-
-```bash
 npm run db:seed-admin
 ```
 
-This command does not create another administrator if one already exists. Remove the initial password from `.env` after setup.
-
-## Environment
-
-See [`.env.example`](./.env.example) for all settings and safe example values.
-
-- Required: `DATABASE_URL`, `REDIS_URL`.
-- Optional: `LOGIN_RATE_LIMIT_MAX_ATTEMPTS`, `LOGIN_RATE_LIMIT_WINDOW_SECONDS`, `TRUSTED_PROXY_IP_HEADER`, and `REPORT_STORAGE_DIR` (local storage only).
-- Production PDF storage requires `SUPABASE_URL` and the server-side `SUPABASE_SECRET_KEY` (`sb_secret_...`) on Vercel.
-- `USE_MOCKS` is set to `true` in `.env.example`; set it to `false` to use real Claude analysis.
-- `ANTHROPIC_API_KEY` is needed only when `USE_MOCKS=false`.
-- `CRON_SECRET` is needed when using either cron endpoint.
-- `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD` are only for initial administrator setup; `INITIAL_ADMIN_NAME` is optional.
-
-Do not commit `.env` or real credentials.
-
-## Run locally
-
-Start the app and worker in separate terminals:
+Set `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD` before seeding. Run the app and worker in separate terminals:
 
 ```bash
 npm run dev
-```
-
-```bash
 npm run worker
 ```
 
-Open `http://localhost:3000`. Sign in at `/login`.
+Open `http://localhost:3000`. See [`.env.example`](./.env.example) for the environment variable reference.
 
-For a production build, run `npm run build` and then `npm run start`. The local BullMQ worker can be started separately with `npm run worker`.
+## Environment Variables
 
-In production, deploy the Next.js application to Vercel and configure cron-job.org to invoke the audit-processing endpoint every minute. Each invocation uses a short-lived BullMQ worker to process at most one job; no persistent worker process is required. The Vercel function is configured for a maximum duration of 60 seconds.
+Use [`.env.example`](./.env.example) as the authoritative reference. The main settings are:
 
-## Audit processing
+| Purpose | Variables |
+|---|---|
+| Database and queue | `DATABASE_URL`, `REDIS_URL` |
+| Mock or Claude reports | `USE_MOCKS`, `ANTHROPIC_API_KEY` |
+| Initial administrator | `INITIAL_ADMIN_EMAIL`, `INITIAL_ADMIN_PASSWORD` |
+| Cron authentication | `CRON_SECRET` |
+| Production PDF storage | `SUPABASE_URL`, `SUPABASE_SECRET_KEY` |
 
-Configure a cron-job.org job with:
+## Mock Mode
 
-- URL: `https://<your-vercel-domain>/api/cron/process-audit`
-- Method: `GET`
-- Schedule: every minute
-- Custom request header: `Authorization: Bearer <CRON_SECRET>`
+With `USE_MOCKS=true`, report generation uses the mock path, and PageSpeed, Google Search Console, and DataForSEO use bundled mock data. Claude uses the Anthropic API when `USE_MOCKS=false` and `ANTHROPIC_API_KEY` is configured. Website crawling and robots.txt/sitemap checks make live HTTP requests. Email and WhatsApp notifications are simulated.
 
-Set `CRON_SECRET` in Vercel environment variables and enter the same value in cron-job.org's header configuration. Do not put the secret in the URL or source code. The function requires the existing `REDIS_URL` and `DATABASE_URL` settings. It processes no more than one waiting job per invocation and returns quickly when the queue is empty.
-
-## Monthly scheduling
-
-`POST /api/cron/monthly-audits` schedules audits for websites without an audit in the current UTC month. It requires `Authorization: Bearer <CRON_SECRET>`. Configure a separate cron-job.org schedule if monthly scheduling is needed; audit processing is handled by the audit-processing cron endpoint above.
-
-## Integrations and storage
-
-PageSpeed, Google Search Console, DataForSEO, WhatsApp, and email integrations are mocks. WhatsApp and email do not send messages. Website crawling makes requests to registered sites. With `USE_MOCKS=true` as configured in `.env.example`, Claude uses a mock; set it to `false` to use the Anthropic API.
-
-PDFs use local `.local-reports` storage in development and tests. Production uses the private Supabase Storage bucket `seo-reports`; the audit processor uploads PDFs, and the authenticated application issues a short-lived signed download URL after checking report ownership. Create the private bucket in Supabase before deployment and configure `SUPABASE_URL` and `SUPABASE_SECRET_KEY` as server-only variables on Vercel. Never expose the secret key with a `NEXT_PUBLIC_` prefix.
-
-## Tests and checks
+## Testing
 
 ```bash
 npm test
 npm run lint
-npx prisma validate
-npx next build
+npm run build
 ```
+
+Tests cover the audit pipeline, reports, and canonical URL and content analysis.
+
+## Demo Access
+
+Administrator credentials are provided separately with the assessment submission. Demo credentials and other sensitive values are not included in this repository.
+
+## Deployment
+
+The application is deployed on Vercel, and its core audit flow has been tested in production. Audits are persisted in PostgreSQL, queued through Redis/BullMQ, and processed through an authenticated cron endpoint. PDF generation and authenticated downloads are supported; production PDF storage requires the configured Supabase Storage credentials. cron-job.org can trigger audit processing.
+
+## Contact
+
+**Samiksha Lone**
+
+- Portfolio: [samiksha-lone.vercel.app](https://samiksha-lone.vercel.app?utm_source=chatgpt.com)

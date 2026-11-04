@@ -112,12 +112,17 @@ function createLocalReportStorage(rootDirectory = getReportStorageDirectory()) {
     return fs.readFile(resolveReportPath(absoluteRoot, key));
   }
 
+  async function deleteReport(key) {
+    await fs.rm(resolveReportPath(absoluteRoot, key), { force: true });
+  }
+
   return {
     type: 'local',
     directory: absoluteRoot,
     getReportKeyForAudit,
     storeReport,
     readReport,
+    deleteReport,
   };
 }
 
@@ -219,6 +224,14 @@ function createSupabaseReportStorage({
     return data.signedUrl;
   }
 
+  async function deleteReport(key) {
+    validateSupabaseObjectPath(key);
+    const { error } = await supabase.storage
+      .from(REPORT_BUCKET)
+      .remove([key]);
+    if (error) throw createSupabaseStorageError('deletion', error);
+  }
+
   return {
     type: 'supabase',
     bucket: REPORT_BUCKET,
@@ -226,6 +239,7 @@ function createSupabaseReportStorage({
     getReportKeyForAudit,
     storeReport,
     createSignedDownloadUrl,
+    deleteReport,
   };
 }
 
@@ -251,6 +265,9 @@ function createUnconfiguredReportStorage() {
       throwConfigurationError();
     },
     async createSignedDownloadUrl() {
+      throwConfigurationError();
+    },
+    async deleteReport() {
       throwConfigurationError();
     },
   };

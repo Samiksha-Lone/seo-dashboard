@@ -113,28 +113,20 @@ export async function DELETE(request, { params }) {
   const auth = await authorizeApi(request, prisma, { roles: ["ADMIN"] });
   if (auth.response) return auth.response;
   try {
-    const result = await prisma.client.deleteMany({
-      where: {
-        id: params.clientId,
-        websites: { none: {} },
-      },
-    });
-    if (result.count === 1) {
-      return NextResponse.json({ data: { id: params.clientId, deleted: true } });
-    }
-
-    const exists = await prisma.client.findUnique({
-      where: { id: params.clientId },
-      select: { id: true },
-    });
-    if (!exists) {
-      return NextResponse.json({ error: "Client not found." }, { status: 404 });
-    }
-    return NextResponse.json(
-      { error: "This client has associated websites. Remove those websites before deleting the client." },
-      { status: 409 }
-    );
+    const { deleteClient } = require("../../../../services/record-deletion");
+    const { reportStorage } = require("../../../../services/report-storage");
+    const data = await deleteClient(prisma, params.clientId, { storage: reportStorage });
+    return NextResponse.json({ data: { ...data, deleted: true } });
   } catch (error) {
+    if (error?.statusCode) {
+      return NextResponse.json({ error: error.message }, { status: error.statusCode });
+    }
+    if (error?.code === "P2034") {
+      return NextResponse.json(
+        { error: "The client changed while deletion was in progress. Refresh and try again." },
+        { status: 409 }
+      );
+    }
     logFailure("delete", error);
     return NextResponse.json(
       { error: "Unable to delete the client right now." },

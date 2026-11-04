@@ -8,14 +8,20 @@ export default function DeleteRecordButton({
   recordId,
   label,
   listHref,
+  confirmationMessage,
 }) {
   const router = useRouter();
   const [error, setError] = useState("");
   const [deleting, setDeleting] = useState(false);
   const endpoint = `/api/${resource}/${encodeURIComponent(recordId)}`;
+  const consequences = {
+    clients: "This permanently deletes the client, all its websites and audit history, issues, recommendations, and report metadata. It will also attempt to remove associated PDFs from storage.",
+    websites: "This permanently deletes the website, all its audit history, issues, recommendations, and report metadata. It will also attempt to remove associated PDFs from storage.",
+    audits: "This permanently deletes the audit, its issues, recommendations, and report metadata. It will also attempt to remove its PDF from storage.",
+  };
 
   async function remove() {
-    if (!window.confirm(`Delete "${label}"? This action cannot be undone.`)) return;
+    if (!window.confirm(confirmationMessage || `${consequences[resource] || "This permanently deletes the selected record and related data."}\n\nDelete "${label}"? This action cannot be undone.`)) return;
     setError("");
     setDeleting(true);
     try {
@@ -24,6 +30,11 @@ export default function DeleteRecordButton({
       if (!response.ok) {
         setError(result.error || `Unable to delete this ${resource.slice(0, -1)}.`);
         return;
+      }
+      if (result.data?.storageCleanupFailures > 0) {
+        window.alert(
+          "The database records were deleted, but one or more PDF files could not be removed from storage. An administrator should check the server logs and clean up those orphaned files.",
+        );
       }
       router.push(listHref);
       router.refresh();

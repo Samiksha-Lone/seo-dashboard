@@ -148,3 +148,37 @@ export async function GET(_request, { params }) {
     );
   }
 }
+
+export async function DELETE(request, { params }) {
+  const { authorizeApi } = require("../../../../services/auth");
+  const auth = await authorizeApi(request, prisma, { roles: ["ADMIN"] });
+  if (auth.response) return auth.response;
+  if (!isValidId(params.auditId)) {
+    return NextResponse.json({ error: 'Invalid audit ID.' }, { status: 400 });
+  }
+
+  try {
+    const { deleteAudit } = require("../../../../services/record-deletion");
+    const { reportStorage } = require("../../../../services/report-storage");
+    const data = await deleteAudit(prisma, params.auditId, { storage: reportStorage });
+    return NextResponse.json({ data: { ...data, deleted: true } });
+  } catch (error) {
+    if (error?.statusCode) {
+      return NextResponse.json({ error: error.message }, { status: error.statusCode });
+    }
+    if (error?.code === 'P2034') {
+      return NextResponse.json(
+        { error: 'The audit changed while deletion was in progress. Refresh and try again.' },
+        { status: 409 },
+      );
+    }
+    console.error('Audit deletion failed:', {
+      name: error?.name || 'Error',
+      code: error?.code || 'UNKNOWN',
+    });
+    return NextResponse.json(
+      { error: 'Unable to delete the audit right now.' },
+      { status: 500 },
+    );
+  }
+}
